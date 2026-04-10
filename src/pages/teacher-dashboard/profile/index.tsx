@@ -3,7 +3,6 @@ import { useTeacherId } from "@/hooks/teacher/useTeacherId";
 import { useUser } from "@/hooks/user/useUser";
 import { ProfileForm } from "@/pages/teachers/detail/detail-profile/profile-form";
 import { ProfileSidebar } from "@/pages/teachers/detail/detail-profile/profile-sidebar";
-import { Spin } from "antd";
 import { Loader2 } from "lucide-react";
 
 export default function TeacherProfile() {

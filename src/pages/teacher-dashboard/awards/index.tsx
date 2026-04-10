@@ -5,7 +5,6 @@ import { MukofotModal } from "@/pages/teachers/detail/detail-modals/mukofot-moda
 import { MukofotlarTab } from "@/pages/teachers/detail/detail-tabs/mukofotlar-tab";
 import { useModalActions } from "@/store/modalStore";
 import { Button } from "@/ui/button";
-import { Spin } from "antd";
 
 export default function TeacherAwards() {
 	const { open } = useModalActions();

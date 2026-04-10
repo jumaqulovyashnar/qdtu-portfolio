@@ -5,7 +5,6 @@ import { MaslahatModal } from "@/pages/teachers/detail/detail-modals/maslahat-mo
 import { MaslahatTab } from "@/pages/teachers/detail/detail-tabs/maslahat-tab";
 import { useModalActions } from "@/store/modalStore";
 import { Button } from "@/ui/button";
-import { Spin } from "antd";
 
 export default function TeacherConsultations() {
 	const { open } = useModalActions();

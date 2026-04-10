@@ -12,7 +12,6 @@ import { useNazorat } from "@/hooks/teacher/useNazorat";
 import { useUser } from "@/hooks/user/useUser";
 import { useNashr } from "@/hooks/teacher/useNashr";
 import { Button } from "@/ui/button";
-import { Spin } from "antd";
 
 export default function TeacherPublications() {
   const { open } = useModalActions();
