@@ -4,6 +4,7 @@ import { useNavigate } from "react-router";
 import { ConfirmPopover } from "@/components/confirm-popover/confirm-popover";
 import type { ColumnDef } from "@/components/data-table/data-table";
 import { DataTable } from "@/components/data-table/data-table";
+import type { Teacher } from "@/features/teacher/teacher.type";
 import { useDepartment } from "@/hooks/department/useDepartment";
 import { usePosition } from "@/hooks/position/usePosition";
 import { useDeleteTeacher } from "@/hooks/teacher/useDeleteTeacher";
@@ -13,7 +14,6 @@ import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/select";
-import type { Teacher } from "@/features/teacher/teacher.type";
 import { TeacherSheet } from "./teacher-sheet";
 
 function createColumns(onEdit: (row: Teacher) => void, onDelete: (row: Teacher) => void): ColumnDef<Teacher>[] {
@@ -33,7 +33,7 @@ function createColumns(onEdit: (row: Teacher) => void, onDelete: (row: Teacher) 
 						{teacher.imgUrl ? (
 							<img src={teacher.imgUrl} alt={teacher.fullName} className="w-7 h-7 rounded-full object-cover shrink-0" />
 						) : (
-							<div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-[12px] shrink-0">
+							<div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-[12px] shrink-0">
 								{teacher.fullName.charAt(0).toUpperCase()}
 							</div>
 						)}
@@ -51,7 +51,7 @@ function createColumns(onEdit: (row: Teacher) => void, onDelete: (row: Teacher) 
 			accessorKey: "lavozim",
 			header: "Lavozim",
 			cell: ({ row }) => (
-				<span className="inline-flex items-center bg-green-50 text-green-700 text-[11px] font-medium px-2 py-0.5 rounded-full truncate">
+				<span className="inline-flex items-center bg-blue-50 text-blue-700 text-[11px] font-medium px-2 py-0.5 rounded-full truncate">
 					{row.getValue("lavozim")}
 				</span>
 			),
@@ -74,7 +74,7 @@ function createColumns(onEdit: (row: Teacher) => void, onDelete: (row: Teacher) 
 							e.stopPropagation();
 							onEdit(row.original);
 						}}
-						className="inline-flex items-center gap-1 bg-green-50 text-green-700 hover:bg-green-100 text-[11px] font-semibold px-2 py-0.5 rounded-md transition-colors cursor-pointer"
+						className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 hover:bg-blue-100 text-[11px] font-semibold px-2 py-0.5 rounded-md transition-colors cursor-pointer"
 					>
 						<FilePenLine className="size-3" />
 						Tahrirlash
@@ -165,7 +165,7 @@ export default function Teachers() {
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-1.5">
 					<span className="text-[13px] font-semibold text-foreground">O'qituvchilar soni:</span>
-					<span className="bg-green-100 text-green-700 text-[12px] font-bold px-2 py-0.5 rounded-full">
+					<span className="bg-blue-100 text-blue-700 text-[12px] font-bold px-2 py-0.5 rounded-full">
 						{filteredData.length}
 					</span>
 					{hasActiveFilters && (
@@ -181,7 +181,7 @@ export default function Teachers() {
 				</div>
 				<Button
 					size="sm"
-					className="h-8 gap-1 text-[12px] bg-green-600 hover:bg-green-700 text-white"
+					className="h-8 gap-1 text-[12px] bg-blue-600 hover:bg-blue-700 text-white"
 					onClick={() => open()}
 				>
 					<UserPlus className="size-3.5" />
