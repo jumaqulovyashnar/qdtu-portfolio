@@ -77,8 +77,9 @@ export function TeacherSheet() {
 	const { data: departmentResponse } = useDepartment();
 	const { data: positionResponse } = usePosition();
 
-	const { mutate: createTeacher } = useCreateTeacher();
-	const { mutate: editTeacher } = useEditTeacher();
+	const { mutate: createTeacher, isPending: isCreatePending } = useCreateTeacher();
+	const { mutate: editTeacher, isPending: isEditPending } = useEditTeacher();
+	const isSubmitPending = isCreatePending || isEditPending;
 
 	const COLLEGES = useMemo(
 		() =>
@@ -446,11 +447,11 @@ export function TeacherSheet() {
 				</ScrollArea>
 
 				<div className="border-t px-6 py-4 flex items-center justify-end gap-2 shrink-0">
-					<Button type="button" variant="outline" onClick={handleClose}>
+					<Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitPending}>
 						Bekor qilish
 					</Button>
-					<Button type="submit" form="teacher-form">
-						Saqlash
+					<Button type="submit" form="teacher-form" disabled={isSubmitPending}>
+						{isSubmitPending ? "Saqlanmoqda..." : "Saqlash"}
 					</Button>
 				</div>
 			</SheetContent>

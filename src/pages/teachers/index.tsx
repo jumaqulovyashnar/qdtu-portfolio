@@ -16,7 +16,11 @@ import { Label } from "@/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/select";
 import { TeacherSheet } from "./teacher-sheet";
 
-function createColumns(onEdit: (row: Teacher) => void, onDelete: (row: Teacher) => void): ColumnDef<Teacher>[] {
+function createColumns(
+	onEdit: (row: Teacher) => void,
+	onDelete: (row: Teacher) => void,
+	isDeleting: boolean,
+): ColumnDef<Teacher>[] {
 	return [
 		{
 			accessorKey: "id",
@@ -79,14 +83,20 @@ function createColumns(onEdit: (row: Teacher) => void, onDelete: (row: Teacher) 
 						<FilePenLine className="size-3" />
 						Tahrirlash
 					</button>
-					<ConfirmPopover onConfirm={() => onDelete(row.original)}>
+					<ConfirmPopover
+						onConfirm={() => {
+							if (isDeleting) return;
+							onDelete(row.original);
+						}}
+					>
 						<button
 							type="button"
 							onClick={(e) => e.stopPropagation()}
+							disabled={isDeleting}
 							className="inline-flex items-center gap-1 bg-red-50 text-red-600 hover:bg-red-100 text-[11px] font-semibold px-2 py-0.5 rounded-md transition-colors cursor-pointer"
 						>
 							<UserX className="size-3" />
-							O'chirish
+							{isDeleting ? "O'chirilmoqda..." : "O'chirish"}
 						</button>
 					</ConfirmPopover>
 				</div>
@@ -101,7 +111,7 @@ export default function Teachers() {
 	const { data: response, isLoading } = useTeacher();
 	const { data: departmentData } = useDepartment();
 	const { data: positionData } = usePosition();
-	const { mutate: deleteTeacher } = useDeleteTeacher();
+	const { mutate: deleteTeacher, isPending: isDeletePending } = useDeleteTeacher();
 
 	const [searchName, setSearchName] = useState("");
 	const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
@@ -156,8 +166,9 @@ export default function Teachers() {
 			createColumns(
 				(row) => open(row),
 				(row) => deleteTeacher(row.id),
+				isDeletePending,
 			),
-		[open, deleteTeacher],
+		[open, deleteTeacher, isDeletePending],
 	);
 
 	return (
@@ -247,7 +258,10 @@ export default function Teachers() {
 				columns={columns}
 				data={filteredData}
 				isLoading={isLoading}
-				onRowClick={(row) => navigate(`/teacher/${row.id}`, { state: { teacher: row } })}
+				onRowClick={(row) => {
+					if (isDeletePending) return;
+					navigate(`/teacher/${row.id}`, { state: { teacher: row } });
+				}}
 			/>
 
 			<TeacherSheet />
