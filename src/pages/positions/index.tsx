@@ -107,8 +107,8 @@ export default function Positions() {
 					</Card>
 					<Card className="py-0">
 						<CardContent className="flex items-center gap-4 px-5 py-4">
-							<div className="flex items-center justify-center size-10 rounded-full bg-green-50">
-								<Users className="size-5 text-green-600" />
+							<div className="flex items-center justify-center size-10 rounded-full bg-blue-50">
+								<Users className="size-5 text-blue-600" />
 							</div>
 							<div className="flex flex-col gap-0.5">
 								<span className="text-[12px] text-muted-foreground">Jami xodimlar</span>
