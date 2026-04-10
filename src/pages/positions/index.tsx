@@ -19,24 +19,19 @@ import { Label } from "@/ui/label";
 type PositionFormValues = {
 	name: string;
 };
-
 export default function Positions() {
 	const [search, setSearch] = useState("");
 	const isOpen = useModalIsOpen();
 	const { close, open } = useModalActions();
 	const editData = useModalEditData() as Position | null;
 	const isEdit = editData !== null;
-
 	const { data: positionResponse, refetch } = usePosition();
 	const { data: statsResponse } = useStatsPosition();
-
 	const { mutate: createPosition, isPending: isCreating } = useCreatePosition();
 	const { mutate: updatePosition, isPending: isUpdating } = useUpdatePosition();
 	const { mutate: deletePosition } = useDeletePosition();
 	const isPending = isCreating || isUpdating;
-
 	const positions: Position[] = positionResponse?.data ?? [];
-
 	const stats = statsResponse?.data;
 	const totalEmployees =
 		stats?.data?.reduce((sum: number, item: { totalEmployees: number }) => sum + item.totalEmployees, 0) ?? 0;
@@ -163,7 +158,6 @@ export default function Positions() {
 					<p className="col-span-full text-center text-muted-foreground py-10 text-[14px]">Ma'lumot topilmadi.</p>
 				)}
 			</div>
-
 			<Modal open={isOpen} onClose={handleClose} title={isEdit ? "Lavozimni tahrirlash" : "Lavozim qo'shish"}>
 				<form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5 py-2">
 					<div className="flex flex-col gap-2">
