@@ -24,6 +24,7 @@ import { ProfileForm } from "./detail-profile/profile-form";
 import { ProfileSidebar } from "./detail-profile/profile-sidebar";
 import { StatsGrid } from "./stats-grid";
 
+
 const EmptyState = ({ title, description, icon }: { title: string; description: string; icon: React.ReactNode }) => (
 	<div className="flex flex-col items-center justify-center py-8 gap-3">
 		<div className="text-muted-foreground">{icon}</div>
@@ -134,9 +135,11 @@ export default function TeacherDetail() {
 
 	const currentToolbar = TOOLBAR_CONFIG[activeTab as keyof typeof TOOLBAR_CONFIG];
 	if (researchLoading) {
-		return <div className="flex flex-col gap-4 sm:gap-5">ma'lumotlar yuklanmoqda !</div>;
+		return <div className="flex flex-col gap-4 sm:gap-5">
+			<p className="text-muted-foreground animate-pulse text-sm font-medium">ma'lumotlar yuklanmoqda...</p>
+			</div>;
 	}
-
+	
 	return (
 		<div className="flex flex-col gap-4 sm:gap-5">
 			{/* Breadcrumb */}

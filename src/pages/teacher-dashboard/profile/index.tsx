@@ -3,6 +3,7 @@ import { useTeacherId } from "@/hooks/teacher/useTeacherId";
 import { useUser } from "@/hooks/user/useUser";
 import { ProfileForm } from "@/pages/teachers/detail/detail-profile/profile-form";
 import { ProfileSidebar } from "@/pages/teachers/detail/detail-profile/profile-sidebar";
+import { Spin } from "antd";
 import { Loader2 } from "lucide-react";
 
 export default function TeacherProfile() {
@@ -14,7 +15,7 @@ export default function TeacherProfile() {
 		return (
 			<div className="w-full h-[60vh] flex flex-col items-center justify-center gap-3 animate-in fade-in duration-500">
 				<Loader2 className="size-10 text-primary animate-spin" />
-				<p className="text-muted-foreground animate-pulse text-sm font-medium">Ma'lumotlar yuklanmoqda...</p>
+				<p className="text-muted-foreground animate-pulse text-sm font-medium">ma'lumotlar yuklanmoqda...</p>
 			</div>
 		);
 	return (

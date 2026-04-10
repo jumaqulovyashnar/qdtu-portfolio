@@ -5,6 +5,7 @@ import { MukofotModal } from "@/pages/teachers/detail/detail-modals/mukofot-moda
 import { MukofotlarTab } from "@/pages/teachers/detail/detail-tabs/mukofotlar-tab";
 import { useModalActions } from "@/store/modalStore";
 import { Button } from "@/ui/button";
+import { Spin } from "antd";
 
 export default function TeacherAwards() {
 	const { open } = useModalActions();
@@ -17,7 +18,7 @@ export default function TeacherAwards() {
 		return (
 			<div className="w-full h-[60vh] flex flex-col items-center justify-center gap-3 animate-in fade-in duration-500">
 				<Loader2 className="size-10 text-primary animate-spin" />
-				<p className="text-muted-foreground animate-pulse text-sm font-medium">Ma'lumotlar yuklanmoqda...</p>
+				<p className="text-muted-foreground animate-pulse text-sm font-medium">ma'lumotlar yuklanmoqda...</p>
 			</div>
 		);
 	}

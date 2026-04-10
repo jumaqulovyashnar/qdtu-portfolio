@@ -2,6 +2,7 @@ import Icon from "@/components/icon/icon";
 import { Badge } from "@/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/card";
 import { Separator } from "@/ui/separator";
+import { Spin } from "antd";
 
 // TODO: Replace with useQuery hooks
 const teacher: {
@@ -29,7 +30,7 @@ export default function TeacherDashboard() {
 			<div className="flex flex-col gap-6 w-full">
 				<Card>
 					<CardContent className="flex items-center justify-center py-12 text-muted-foreground text-[14px]">
-						Ma'lumotlar yuklanmoqda...
+					ma'lumotlar yuklanmoqda...
 					</CardContent>
 				</Card>
 			</div>
