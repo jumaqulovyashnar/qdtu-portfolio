@@ -1,30 +1,29 @@
+import { Pencil, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { useSearchParams } from "react-router";
 import { ConfirmPopover } from "@/components/confirm-popover/confirm-popover";
-import { DataTable } from "@/components/data-table/data-table";
 import type { ColumnDef } from "@/components/data-table/data-table";
+import { DataTable } from "@/components/data-table/data-table";
 import { FileInput } from "@/components/file-input/file-input";
 import { Modal } from "@/components/modal/modal";
 import { SearchableSelect } from "@/components/searchable-select/searchable-select";
 import { TableToolbar } from "@/components/table-toolbar/table-toolbar";
-import { useModalActions, useModalIsOpen, useModalEditData } from "@/store/modalStore";
-import { useCreateDepartment } from "@/hooks/department/useCreateDepartment";
-import { useDepartment } from "@/hooks/department/useDepartment";
-import { useDeleteDepartment } from "@/hooks/department/useDeleteDepartment";
-import { useUpdateDepartment } from "@/hooks/department/useEditDepartment";
+import type { Department } from "@/features/departments/department.type";
 import { useCollage } from "@/hooks/collage/useCollage";
+import { useCreateDepartment } from "@/hooks/department/useCreateDepartment";
+import { useDeleteDepartment } from "@/hooks/department/useDeleteDepartment";
+import { useDepartment } from "@/hooks/department/useDepartment";
+import { useUpdateDepartment } from "@/hooks/department/useEditDepartment";
+import { useModalActions, useModalEditData, useModalIsOpen } from "@/store/modalStore";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
-import { Pencil, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router";
-import { Controller, useForm } from "react-hook-form";
-import type { Department } from "@/features/departments/department.type";
 
 type DepartmentFormValues = {
 	name: string;
 	departmentId: string | number;
 	image: File | null;
-	
 };
 
 function createColumns(
@@ -37,9 +36,7 @@ function createColumns(
 		{
 			accessorKey: "id",
 			header: "#",
-			cell: ({ row }) => (
-				<span className="text-muted-foreground">{page * 10 + row.index + 1}</span>
-			),
+			cell: ({ row }) => <span className="text-muted-foreground">{page * 10 + row.index + 1}</span>,
 		},
 		{
 			accessorKey: "imgUrl",
@@ -147,8 +144,7 @@ export default function Departments() {
 	const departments: Department[] = departmentResponse?.data ?? [];
 	const filteredDepartments = departments.filter(
 		(d) =>
-			d.name.toLowerCase().includes(search.toLowerCase()) ||
-			d.imgUrl?.toLowerCase().includes(search.toLowerCase()),
+			d.name.toLowerCase().includes(search.toLowerCase()) || d.imgUrl?.toLowerCase().includes(search.toLowerCase()),
 	);
 	const totalElements = filteredDepartments.length;
 	const totalPage = Math.ceil(totalElements / 10);
@@ -192,14 +188,34 @@ export default function Departments() {
 	};
 
 	const onSubmit = (values: DepartmentFormValues) => {
-	if (isEdit && editData) {
-		const data: any = { 
-			name: values.name, 
-			departmentId: Number(values.departmentId) 
-		};
-		if (values.image) data.image = values.image;
-		updateDepartment(
-			{ id:editData.id , collegeId: Number(values.departmentId), data },
+		if (isEdit && editData) {
+			const data: any = {
+				name: values.name,
+				departmentId: Number(values.departmentId),
+			};
+			if (values.image) data.image = values.image;
+			updateDepartment(
+				{ id: editData.id, collegeId: Number(values.departmentId), data },
+				{
+					onSuccess: () => {
+						handleClose();
+						refetch();
+					},
+				},
+			);
+			return;
+		}
+
+		// ✅ image va departmentId ni tekshirish
+		if (!values.image) return;
+		if (!values.departmentId) return; // ← bu qo'shildi
+
+		createDepartment(
+			{
+				name: values.name,
+				collegeId: Number(values.departmentId),
+				image: values.image,
+			},
 			{
 				onSuccess: () => {
 					handleClose();
@@ -207,27 +223,7 @@ export default function Departments() {
 				},
 			},
 		);
-		return;
-	}
-
-	// ✅ image va departmentId ni tekshirish
-	if (!values.image) return;
-	if (!values.departmentId) return; // ← bu qo'shildi
-
-	createDepartment(
-		{
-			name: values.name,
-			collegeId: Number(values.departmentId),
-			image: values.image,
-		},
-		{
-			onSuccess: () => {
-				handleClose();
-				refetch();
-			},
-		},
-	);
-};
+	};
 
 	return (
 		<div className="flex flex-col gap-4">
@@ -252,7 +248,7 @@ export default function Departments() {
 			{previewImage && (
 				<button
 					type="button"
-					className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 cursor-pointer w-full border-0"
+					className="fixed inset-0 bg-blue flex items-center justify-center z-50 cursor-pointer w-full border-0"
 					onClick={() => setPreviewImage(null)}
 				>
 					<div
@@ -267,11 +263,7 @@ export default function Departments() {
 				</button>
 			)}
 
-			<Modal
-				open={isOpen}
-				onClose={handleClose}
-				title={isEdit ? "Kafedrani tahrirlash" : "Kafedra qo'shish"}
-			>
+			<Modal open={isOpen} onClose={handleClose} title={isEdit ? "Kafedrani tahrirlash" : "Kafedra qo'shish"}>
 				<form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5 py-2">
 					<div className="flex flex-col gap-2">
 						<Label>Rasm</Label>
@@ -279,13 +271,9 @@ export default function Departments() {
 							name="image"
 							control={control}
 							rules={{ required: !isEdit && "Rasm tanlanishi shart" }}
-							render={({ field }) => (
-								<FileInput type="image" value={field.value} onChange={field.onChange} />
-							)}
+							render={({ field }) => <FileInput type="image" value={field.value} onChange={field.onChange} />}
 						/>
-						{errors.image && (
-							<span className="text-[12px] text-red-500">{errors.image.message}</span>
-						)}
+						{errors.image && <span className="text-[12px] text-red-500">{errors.image.message}</span>}
 					</div>
 
 					<div className="flex flex-col gap-2">
@@ -304,9 +292,7 @@ export default function Departments() {
 								/>
 							)}
 						/>
-						{errors.departmentId && (
-							<span className="text-[12px] text-red-500">{errors.departmentId.message}</span>
-						)}
+						{errors.departmentId && <span className="text-[12px] text-red-500">{errors.departmentId.message}</span>}
 					</div>
 
 					<div className="flex flex-col gap-2">
@@ -316,9 +302,7 @@ export default function Departments() {
 							placeholder="Masalan: Farmatsiya va kimyo kafedrasi"
 							{...register("name", { required: "Kafedra nomi kiritilishi shart" })}
 						/>
-						{errors.name && (
-							<span className="text-[12px] text-red-500">{errors.name.message}</span>
-						)}
+						{errors.name && <span className="text-[12px] text-red-500">{errors.name.message}</span>}
 					</div>
 
 					<div className="flex justify-end gap-2">
