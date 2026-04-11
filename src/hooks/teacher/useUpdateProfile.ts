@@ -1,43 +1,61 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { fileService } from "@/features/file/file.service";
 import { TeacherService } from "@/features/teacher/teacher.service";
-import type { ProfileEditRequest, ProfileFormData } from "@/features/teacher/teacher.type";
+import type { ProfileFormData, UpdateProfileRequestBody } from "@/features/teacher/teacher.type";
+
+function extractUploadedUrl(body: unknown): string | undefined {
+	if (typeof body === "string" && body.trim() !== "") return body;
+	if (body && typeof body === "object") {
+		const o = body as Record<string, unknown>;
+		if (typeof o.data === "string" && o.data.trim() !== "") return o.data;
+		if (typeof o.url === "string") return o.url;
+		if (typeof o.fileUrl === "string") return o.fileUrl;
+		if (typeof o.imageUrl === "string") return o.imageUrl;
+	}
+	return undefined;
+}
+
+export type UpdateProfileMutationResult = {
+	nextImageUrl?: string;
+	nextFileUrl?: string;
+};
 
 export function useUpdateProfile() {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (input: ProfileFormData) => {
-			const payload: ProfileEditRequest = {
+		mutationFn: async (input: ProfileFormData): Promise<UpdateProfileMutationResult> => {
+			const payload: UpdateProfileRequestBody = {
 				id: input.id,
 			};
 
-			// Fayl upload qilish - imageUri
-			if (input.imageUri && input.imageUri instanceof File) {
-				const uploadedUrl = await fileService.uploadImage(input.imageUri);
-				if (uploadedUrl) {
-					payload.imgUrl = uploadedUrl;
-				}
+			let nextImageUrl: string | undefined;
+			let nextFileUrl: string | undefined;
+
+			if (input.imageUri instanceof File) {
+				const raw = await fileService.uploadImage(input.imageUri);
+				nextImageUrl = extractUploadedUrl(raw);
+				if (nextImageUrl) payload.imageUrl = nextImageUrl;
+			} else if (typeof input.imageUri === "string" && input.imageUri.trim() !== "") {
+				payload.imageUrl = input.imageUri;
 			}
 
-			// Fayl upload qilish - fileUrl (Rezyume)
-			if (input.fileUrl && input.fileUrl instanceof File) {
-				const uploadedUrl = await fileService.uploadFile(input.fileUrl);
-				if (uploadedUrl) {
-					payload.fileUrl = uploadedUrl;
-				}
+			if (input.fileUrl instanceof File) {
+				const raw = await fileService.uploadFile(input.fileUrl);
+				nextFileUrl = extractUploadedUrl(raw);
+				if (nextFileUrl) payload.fileUrl = nextFileUrl;
+			} else if (typeof input.fileUrl === "string" && input.fileUrl.trim() !== "") {
+				payload.fileUrl = input.fileUrl;
 			}
 
-			// Faqat o'zgargan fieldlarni payload ga qo'sh
-			// Barcha fieldlar optional, undefined bo'lmaganlarini yuborish
 			if (input.fullName !== undefined) payload.fullName = input.fullName;
 			if (input.phoneNumber !== undefined) payload.phoneNumber = input.phoneNumber;
 			if (input.email !== undefined) payload.email = input.email;
 			if (input.biography !== undefined) payload.biography = input.biography;
 			if (input.input !== undefined) payload.input = input.input;
 			if (input.age !== undefined) payload.age = input.age;
-			if (input.orcid !== undefined) payload.orcid = input.orcid;
-			if (input.scopusid !== undefined) payload.scopusid = input.scopusid;
+			if (input.orcid !== undefined) payload.orcId = input.orcid;
+			if (input.scopusid !== undefined) payload.scopusId = input.scopusid;
 			if (input.scienceId !== undefined) payload.scienceId = input.scienceId;
 			if (input.researcherId !== undefined) payload.researcherId = input.researcherId;
 			if (input.gender !== undefined) payload.gender = input.gender;
@@ -45,18 +63,22 @@ export function useUpdateProfile() {
 			if (input.lavozmId !== undefined) payload.lavozmId = input.lavozmId;
 			if (input.departmentId !== undefined) payload.departmentId = input.departmentId;
 
-			// Backend ga yuborish
-			return TeacherService.updateProfile(payload);
+			await TeacherService.updateProfile(payload);
+			return { nextImageUrl, nextFileUrl };
 		},
-		onSuccess: () => {
-			// Cache invalidate qil - teacher list va detail refresh bo'lsin
+		onSuccess: (_data, variables) => {
 			queryClient.invalidateQueries({ queryKey: ["teachers"] });
-			queryClient.invalidateQueries({ queryKey: ["teacher-detail"] });
-			queryClient.invalidateQueries({ queryKey: ["profile"] });
+			queryClient.invalidateQueries({
+				queryKey: ["teacher", "detail", variables.id],
+				exact: true,
+			});
+			queryClient.invalidateQueries({
+				queryKey: ["teacher-completion", variables.id],
+				exact: true,
+			});
 		},
-		onError: (error: any) => {
+		onError: (error: unknown) => {
 			console.error("Profile update error:", error);
-			// Toast error TeacherService da bo'lishi mumkin
 		},
 	});
 }

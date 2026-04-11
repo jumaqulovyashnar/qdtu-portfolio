@@ -58,8 +58,11 @@ class ApiClient {
 						window.location.href = "/auth/login";
 					}
 
-					// 500 — server ichki xatosi
-					if (status === 500) {
+					const msg = String(data?.message ?? "");
+					const isStaticResourceNoise = msg.includes("No static resource");
+
+					// 500 — server ichki xatosi (noto'g'ri URL / static handler — toast chiqarmaymiz)
+					if (status === 500 && !isStaticResourceNoise) {
 						toast.error("Server vaqtincha ishlamayapti, qaytadan urinib ko'ring");
 					}
 

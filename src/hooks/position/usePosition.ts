@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { PositionService } from "@/features/position/position.service";
-import type { Position } from "@/features/position/position.type";
+import type { PositionListResponse } from "@/features/position/position.type";
 
 export function usePosition() {
-	return useQuery<{ data: Position[] }>({
+	return useQuery<PositionListResponse>({
 		queryKey: ["positions"],
 		queryFn: () => PositionService.getAll(),
 	});

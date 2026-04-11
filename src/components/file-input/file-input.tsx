@@ -1,12 +1,12 @@
 import { cn } from "@/utils";
 import { FileSpreadsheet, FileText, FileType2, ImagePlus, X } from "lucide-react";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type BaseProps = {
-	value: File | null;
-	onChange: (file: File | null) => void;
+	value: File | string | null;
+	onChange: (file: File | string | null) => void;
 	className?: string;
 };
 
@@ -35,13 +35,38 @@ function getDocIcon(name: string) {
 	return <FileText className="size-8 text-blue-600" />;
 }
 
+function fileNameFromUrl(url: string): string {
+	try {
+		const u = new URL(url, typeof window !== "undefined" ? window.location.origin : "http://local");
+		const last = u.pathname.split("/").pop() ?? "hujjat";
+		return decodeURIComponent(last) || "hujjat";
+	} catch {
+		const last = url.split("/").pop() ?? "hujjat";
+		return last.split("?")[0] || "hujjat";
+	}
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function FileInput(props: FileInputProps) {
 	const { value, onChange, className } = props;
 	const inputRef = useRef<HTMLInputElement>(null);
+	const [objectUrl, setObjectUrl] = useState<string | null>(null);
 
 	const accept = props.type === "image" ? "image/*" : (props.accept ?? ".pdf,.doc,.docx,.xls,.xlsx");
+
+	useEffect(() => {
+		if (value instanceof File) {
+			const url = URL.createObjectURL(value);
+			setObjectUrl(url);
+			return () => {
+				URL.revokeObjectURL(url);
+				setObjectUrl(null);
+			};
+		}
+		setObjectUrl(null);
+		return undefined;
+	}, [value]);
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0] ?? null;
@@ -56,7 +81,8 @@ export function FileInput(props: FileInputProps) {
 
 	// ── Image variant ──────────────────────────────────────────────────────────
 	if (props.type === "image") {
-		const preview = value ? URL.createObjectURL(value) : null;
+		const preview =
+			value instanceof File ? objectUrl : typeof value === "string" && value ? value : null;
 
 		return (
 			<div className={cn("flex flex-col gap-1", className)}>
@@ -89,22 +115,45 @@ export function FileInput(props: FileInputProps) {
 	}
 
 	// ── Document variant ───────────────────────────────────────────────────────
+	const docLabel = value instanceof File ? value.name : typeof value === "string" ? fileNameFromUrl(value) : "";
+
 	return (
 		<div className={cn("flex flex-col gap-1", className)}>
 			{value ? (
-				<div className="flex items-center gap-3 w-full h-36 rounded-xl border px-4 py-3 bg-muted/20">
-					{getDocIcon(value.name)}
-					<div className="flex flex-col gap-0.5 flex-1 min-w-0">
-						<span className="text-[13px] font-medium truncate">{value.name}</span>
-						<span className="text-[11px] text-muted-foreground">{formatBytes(value.size)}</span>
+				<div className="flex flex-col gap-2 w-full min-h-36 rounded-xl border px-4 py-3 bg-muted/20 justify-center">
+					<div className="flex items-center gap-3">
+						{value instanceof File ? (
+							<>
+								{getDocIcon(value.name)}
+								<div className="flex flex-col gap-0.5 flex-1 min-w-0">
+									<span className="text-[13px] font-medium truncate">{value.name}</span>
+									<span className="text-[11px] text-muted-foreground">{formatBytes(value.size)}</span>
+								</div>
+							</>
+						) : (
+							<>
+								{getDocIcon(docLabel)}
+								<div className="flex flex-col gap-0.5 flex-1 min-w-0">
+									<a
+										href={value}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="text-[13px] font-medium text-primary hover:underline truncate"
+									>
+										{docLabel}
+									</a>
+									<span className="text-[11px] text-muted-foreground">Yuklangan fayl</span>
+								</div>
+							</>
+						)}
+						<button
+							type="button"
+							onClick={handleRemove}
+							className="shrink-0 text-muted-foreground hover:text-red-500 transition-colors"
+						>
+							<X className="size-4" />
+						</button>
 					</div>
-					<button
-						type="button"
-						onClick={handleRemove}
-						className="shrink-0 text-muted-foreground hover:text-red-500 transition-colors"
-					>
-						<X className="size-4" />
-					</button>
 				</div>
 			) : (
 				<button

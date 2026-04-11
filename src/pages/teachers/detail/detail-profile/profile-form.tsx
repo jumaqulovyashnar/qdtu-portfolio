@@ -1,12 +1,13 @@
 import { FileText, Save, User, CheckCircle, AlertCircle } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { FileInput } from "@/components/file-input/file-input";
 import { SearchableSelect } from "@/components/searchable-select/searchable-select";
 import type { ProfileFormData } from "@/features/teacher/teacher.type";
 import { useDepartment } from "@/hooks/department/useDepartment";
 import { usePosition } from "@/hooks/position/usePosition";
-import { useUpdateProfile } from "@/hooks/teacher/useUpdateProfile";
+import { useUpdateProfile, type UpdateProfileMutationResult } from "@/hooks/teacher/useUpdateProfile";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
@@ -15,14 +16,125 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/ui/tabs";
 import { Textarea } from "@/ui/textarea";
 import { cn } from "@/utils";
 
+const PROFILE_SAVE_TOAST_ID = "teacher-profile-saved";
+
+function profileDraftKey(teacherId: number) {
+	return `teacher-profile-draft-${teacherId}`;
+}
+
+function profileFormToDraft(v: ProfileFormData): Record<string, unknown> {
+	return {
+		fullName: v.fullName,
+		email: v.email,
+		age: v.age,
+		phoneNumber: v.phoneNumber,
+		biography: v.biography,
+		input: v.input,
+		orcid: v.orcid,
+		scopusid: v.scopusid,
+		scienceId: v.scienceId,
+		researcherId: v.researcherId,
+		gender: v.gender,
+		profession: v.profession,
+		lavozmId: v.lavozmId,
+		departmentId: v.departmentId,
+		...(typeof v.imageUri === "string" ? { imageUri: v.imageUri } : {}),
+		...(typeof v.fileUrl === "string" ? { fileUrl: v.fileUrl } : {}),
+	};
+}
+
 type ProfileFormProps = {
 	defaultValues: ProfileFormData;
+	/** Serverdan kelgan ma'lumot o'zgaganda forma maydonlarini yangilash */
+	formSyncKey?: string | number;
 };
 
-export function ProfileForm({ defaultValues }: ProfileFormProps) {
-	const { register, control, handleSubmit } = useForm<ProfileFormData>({
+export function ProfileForm({ defaultValues, formSyncKey = 0 }: ProfileFormProps) {
+	const { register, control, handleSubmit, reset, getValues, watch, formState } = useForm<ProfileFormData>({
 		defaultValues,
 	});
+	const { isDirty } = formState;
+
+	const defaultsRef = useRef(defaultValues);
+	defaultsRef.current = defaultValues;
+
+	const syncKeyRef = useRef(formSyncKey);
+	syncKeyRef.current = formSyncKey;
+
+	const lastAppliedSyncKeyRef = useRef<string | number | undefined>(undefined);
+	const prevTeacherIdRef = useRef(defaultValues.id);
+
+	useEffect(() => {
+		const teacherId = defaultValues.id;
+		if (teacherId !== prevTeacherIdRef.current) {
+			prevTeacherIdRef.current = teacherId;
+			lastAppliedSyncKeyRef.current = undefined;
+			reset(defaultsRef.current);
+			lastAppliedSyncKeyRef.current = formSyncKey;
+			return;
+		}
+
+		if (formSyncKey === lastAppliedSyncKeyRef.current) return;
+		if (isDirty) return;
+
+		reset(defaultsRef.current);
+		lastAppliedSyncKeyRef.current = formSyncKey;
+	}, [defaultValues.id, formSyncKey, isDirty, reset]);
+
+	useEffect(() => {
+		try {
+			const raw = sessionStorage.getItem(profileDraftKey(defaultValues.id));
+			if (!raw) return;
+			const patch = JSON.parse(raw) as Partial<ProfileFormData>;
+			reset((prev) => ({ ...prev, ...patch }));
+		} catch {
+			/* ignore */
+		}
+	}, [formSyncKey, defaultValues.id, reset]);
+
+	useEffect(() => {
+		const key = profileDraftKey(defaultValues.id);
+		let t: ReturnType<typeof setTimeout>;
+		const sub = watch((values) => {
+			clearTimeout(t);
+			t = setTimeout(() => {
+				try {
+					sessionStorage.setItem(key, JSON.stringify(profileFormToDraft(values as ProfileFormData)));
+				} catch {
+					/* ignore */
+				}
+			}, 450);
+		});
+		return () => {
+			clearTimeout(t);
+			sub.unsubscribe();
+		};
+	}, [watch, defaultValues.id]);
+
+	const tabStorageKey = `teacher-profile-tab-${defaultValues.id}`;
+	const [activeTab, setActiveTab] = useState<"main" | "extra">("main");
+
+	useEffect(() => {
+		try {
+			const s = sessionStorage.getItem(tabStorageKey);
+			setActiveTab(s === "extra" || s === "main" ? s : "main");
+		} catch {
+			setActiveTab("main");
+		}
+	}, [tabStorageKey]);
+
+	const onTabChange = useCallback(
+		(value: string) => {
+			const v = value === "extra" ? "extra" : "main";
+			setActiveTab(v);
+			try {
+				sessionStorage.setItem(tabStorageKey, v);
+			} catch {
+				/* ignore */
+			}
+		},
+		[tabStorageKey]
+	);
 
 	const { data: departmentResponse } = useDepartment();
 	const { data: positionResponse } = usePosition();
@@ -38,7 +150,7 @@ export function ProfileForm({ defaultValues }: ProfileFormProps) {
 
 	const positionOptions = useMemo(
 		() =>
-			(positionResponse?.data ?? []).map((position: { id: number; name: string }) => ({
+			(positionResponse?.data ?? []).map((position) => ({
 				value: String(position.id),
 				label: position.name,
 			})),
@@ -47,16 +159,36 @@ export function ProfileForm({ defaultValues }: ProfileFormProps) {
 
 	const { mutate: updateProfile, isPending } = useUpdateProfile();
 	const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
+	const submitLockRef = useRef(false);
 
 	const onSubmit = (data: ProfileFormData) => {
+		if (isPending || submitLockRef.current) return;
+		submitLockRef.current = true;
+
 		updateProfile(data, {
-			onSuccess: () => {
+			onSuccess: (result: UpdateProfileMutationResult) => {
+				try {
+					sessionStorage.removeItem(profileDraftKey(data.id));
+				} catch {
+					/* ignore */
+				}
+				toast.success("Ma'lumot saqlandi", { id: PROFILE_SAVE_TOAST_ID });
+				const v = getValues();
+				reset({
+					...v,
+					imageUri: result.nextImageUrl ?? (typeof v.imageUri === "string" ? v.imageUri : null),
+					fileUrl: result.nextFileUrl ?? (typeof v.fileUrl === "string" ? v.fileUrl : null),
+				});
+				lastAppliedSyncKeyRef.current = String(syncKeyRef.current);
 				setSaveStatus("success");
 				setTimeout(() => setSaveStatus("idle"), 2000);
 			},
 			onError: () => {
 				setSaveStatus("error");
 				setTimeout(() => setSaveStatus("idle"), 3000);
+			},
+			onSettled: () => {
+				submitLockRef.current = false;
 			},
 		});
 	};
@@ -117,7 +249,7 @@ export function ProfileForm({ defaultValues }: ProfileFormProps) {
 
 			{/* Tabs */}
 			<div className="rounded-xl border bg-card overflow-hidden shadow-sm">
-				<Tabs defaultValue="main">
+				<Tabs value={activeTab} onValueChange={onTabChange}>
 					<div className="border-b px-2 sm:px-4 overflow-x-auto bg-muted/30">
 						<TabsList className="bg-transparent h-auto p-0 rounded-none gap-0 justify-start min-w-max">
 							{[
@@ -396,7 +528,7 @@ function FileField({
 				render={({ field }) => (
 					<FileInput
 						type={type}
-						value={field.value}
+						value={field.value ?? null}
 						onChange={field.onChange}
 						accept={accept}
 					/>

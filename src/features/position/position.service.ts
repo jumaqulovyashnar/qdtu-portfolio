@@ -1,11 +1,16 @@
 import { apiClient } from "@/api/client";
-import { Position } from "./position.type";
-import type { PositionCreateResponse, CreatePositionDTO, IApiResponse } from "./position.type";
+import type {
+	CreatePositionDTO,
+	IApiResponse,
+	Position,
+	PositionCreateResponse,
+	PositionListResponse,
+} from "./position.type";
 import { POSITION } from "@/constants/apiEndpoint";
 
 export const PositionService = {
 	getAll() {
-		return apiClient.get(POSITION.LAVOZIM);
+		return apiClient.get<PositionListResponse>(POSITION.LAVOZIM);
 	},
 	create(data: CreatePositionDTO) {
 		return apiClient.post<PositionCreateResponse>(POSITION.LAVOZIM, data);

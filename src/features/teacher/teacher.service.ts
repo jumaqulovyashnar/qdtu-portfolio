@@ -6,7 +6,7 @@ import type {
   SearchParams,
   GetTeacherListResponse,
   GetTeacherByIdResponse,
-  UpdateTeacherParams,
+  UpdateProfileRequestBody,
   CommonResponse,
   TeacherStatsResponse,
   TeacherComplationResponse,
@@ -29,7 +29,7 @@ export const TeacherService = {
     return apiClient.put<CommonResponse>(TEACHER.EDIT, params);
   },
 
-  updateProfile(params: UpdateTeacherParams) {
+  updateProfile(params: UpdateProfileRequestBody) {
     return apiClient.put<CommonResponse>(TEACHER.UPDATE_PROFILE, params);
   },
 

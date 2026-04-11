@@ -23,4 +23,9 @@ export const fileService = {
 			},
 		});
 	},
+
+	/** Rezyume / hujjat — PDF endpoint orqali */
+	uploadFile(file: File) {
+		return this.uploadPdf(file);
+	},
 };

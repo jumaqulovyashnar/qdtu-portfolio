@@ -45,22 +45,23 @@ export interface GetTeacherListResponse {
   data: TeacherListData;
 }
 
+/** GET /teacher/{id} javobidagi `data` — ReqUserDTO / teacher card */
 export interface ITeacherDetail {
   id: number;
   fullName: string;
-  phone: string;
-  email: string;
-  biography: string;
-  input: string;
+  phone: string | null;
+  email: string | null;
+  biography: string | null;
+  input: string | null;
   age: number;
   gender: boolean;
-  orcId: string;
-  scopusId: string;
-  scienceId: string;
-  researcherId: string;
-  imageUrl: string;
-  fileUrl: string;
-  profession: string;
+  orcId: string | null;
+  scopusId: string | null;
+  scienceId: string | null;
+  researcherId: string | null;
+  imageUrl: string | null;
+  fileUrl: string | null;
+  profession: string | null;
 }
 
 export interface GetTeacherByIdResponse {
@@ -145,9 +146,30 @@ export interface ProfileEditRequest extends Partial<UpdateTeacherRequest> {
   departmentId?: number;
 }
 
+/** Backend ReqUserDTO JSON — orcid/scopusid emas, orcId/scopusId; rasm uchun imageUrl */
+export interface UpdateProfileRequestBody {
+  id: number;
+  fullName?: string;
+  phoneNumber?: string;
+  email?: string;
+  biography?: string;
+  input?: string;
+  age?: number;
+  orcId?: string;
+  scopusId?: string;
+  scienceId?: string;
+  researcherId?: string;
+  gender?: boolean;
+  imageUrl?: string;
+  fileUrl?: string;
+  profession?: string;
+  lavozmId?: number;
+  departmentId?: number;
+}
+
 export interface ProfileFormData extends Omit<ProfileEditRequest, 'imgUrl' | 'fileUrl'> {
-  // File inputlar uchun
-  imageUri?: File | null;
+  /** Yangi rasm (File) yoki serverdagi URL (string) */
+  imageUri?: File | string | null;
   fileUrl?: File | null | string;
 }
 

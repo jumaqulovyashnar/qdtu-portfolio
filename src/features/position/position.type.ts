@@ -6,6 +6,12 @@ export interface Position {
 	id: number;
 	name: string;
 }
+
+export interface PositionListResponse {
+	success: boolean;
+	message: string;
+	data: Position[];
+}
 export interface PositionCreateResponse {
 	success: boolean;
 	message: string;
