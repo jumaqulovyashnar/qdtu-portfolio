@@ -1,33 +1,33 @@
+import { Checkbox } from "antd";
+import {
+	AlignLeft,
+	BookOpen,
+	Building2,
+	Calendar,
+	FileText,
+	FileUp,
+	Globe2,
+	Hash,
+	Pencil,
+	Plus,
+	Star,
+	UserCheck,
+} from "lucide-react";
+import { useEffect } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { FileInput } from "@/components/file-input/file-input";
 import { Modal } from "@/components/modal/modal";
+import { fileService } from "@/features/file/file.service";
 import type { PublicationCreateParams } from "@/features/publication/publication.type";
 import { useCreateNashr } from "@/hooks/teacher/useCreateNashr";
 import { useEditNashr } from "@/hooks/teacher/useEditNashr";
-import { fileService } from "@/features/file/file.service";
 import { useModalActions, useModalEditData, useModalIsOpen } from "@/store/modalStore";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/select";
 import { Textarea } from "@/ui/textarea";
-import { Checkbox } from "@/ui/checkbox"; // Shadcn Checkbox ishlatsangiz bo'ladi
-import { useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
-import {
-	BookOpen,
-	AlignLeft,
-	Calendar,
-	Building2,
-	FileText,
-	UserCheck,
-	Globe2,
-	Hash,
-	FileUp,
-	Plus,
-	Pencil,
-	Star,
-} from "lucide-react";
 
 function uploadResponseToUrl(raw: unknown): string {
 	if (typeof raw === "string" && raw.trim() !== "") return raw;
@@ -120,9 +120,7 @@ export function NashrModal({ userId }: { userId: number }) {
 		};
 
 		try {
-			isEdit
-				? await editNashr({ id: editData.id as number, ...payload })
-				: await createNashr(payload);
+			isEdit ? await editNashr({ id: editData.id as number, ...payload }) : await createNashr(payload);
 			close();
 		} catch {
 			/* xato toast hookda */
@@ -189,10 +187,7 @@ export function NashrModal({ userId }: { userId: number }) {
 							control={control}
 							rules={{ required: true }}
 							render={({ field }) => (
-								<Select
-									value={field.value ? String(field.value) : undefined}
-									onValueChange={field.onChange}
-								>
+								<Select value={field.value ? String(field.value) : undefined} onValueChange={field.onChange}>
 									<SelectTrigger className="bg-background">
 										<SelectValue placeholder="Tanlang" />
 									</SelectTrigger>
@@ -215,10 +210,7 @@ export function NashrModal({ userId }: { userId: number }) {
 							control={control}
 							rules={{ required: true }}
 							render={({ field }) => (
-								<Select
-									value={field.value ? String(field.value) : undefined}
-									onValueChange={field.onChange}
-								>
+								<Select value={field.value ? String(field.value) : undefined} onValueChange={field.onChange}>
 									<SelectTrigger className="bg-background">
 										<SelectValue placeholder="Tanlang" />
 									</SelectTrigger>
@@ -240,10 +232,7 @@ export function NashrModal({ userId }: { userId: number }) {
 							control={control}
 							rules={{ required: true }}
 							render={({ field }) => (
-								<Select
-									value={field.value ? String(field.value) : undefined}
-									onValueChange={field.onChange}
-								>
+								<Select value={field.value ? String(field.value) : undefined} onValueChange={field.onChange}>
 									<SelectTrigger className="bg-background">
 										<SelectValue placeholder="Tanlang" />
 									</SelectTrigger>

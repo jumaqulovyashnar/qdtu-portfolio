@@ -21,7 +21,7 @@ import {
 	Globe2,
 	CheckCircle2,
 	FileUp,
-	Plus,
+	// Plus,
 	Pencil,
 } from "lucide-react";
 
@@ -115,7 +115,7 @@ export function PublicationModal({ userId }: { userId: number }) {
 						</Label>
 						<Textarea
 							placeholder="Qisqacha tavsif..."
-							className="min-h-[60px] resize-none bg-background"
+							className="  min-height: 60px; resize-none bg-background"
 							{...register("description")}
 						/>
 					</div>
