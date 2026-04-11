@@ -19,8 +19,9 @@ export function useCreateResearch() {
 
 	return useMutation({
 		mutationFn: (input: CreateResearchInput) => ResearchService.create(input),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["research"] });
+		onSuccess: async (_data, variables) => {
+			await queryClient.invalidateQueries({ queryKey: ["research", variables.userId] });
+			await queryClient.refetchQueries({ queryKey: ["research", variables.userId], type: "active" });
 			toast.success("Tatqiqot muvaffaqiyatli qo'shildi");
 		},
 		onError: (error: any) => {

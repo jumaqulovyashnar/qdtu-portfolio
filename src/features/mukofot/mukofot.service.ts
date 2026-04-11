@@ -11,7 +11,7 @@ export const MukofotService = {
 		return apiClient.delete<EditResearchResponse>(`${MUKOFOT.DELETE}/${id}`);
 	},
 	edit(id: number | string, params: AwardRequest) {
-		return apiClient.put(`${MUKOFOT.DELETE}/${id}`, params);
+		return apiClient.put(`${MUKOFOT.UPDATE}/${id}`, params);
 	},
 	create(params: AwardRequest) {
 		return apiClient.post(MUKOFOT.CREATE, params);

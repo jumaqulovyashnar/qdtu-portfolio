@@ -8,8 +8,9 @@ export function useCreateNashr() {
 
 	return useMutation({
 		mutationFn: (input: PublicationCreateParams) => publicationService.create(input),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["nashr"] });
+		onSuccess: async (_data, variables) => {
+			await queryClient.invalidateQueries({ queryKey: ["nashr", variables.userId] });
+			await queryClient.refetchQueries({ queryKey: ["nashr", variables.userId], type: "active" });
 			toast.success("Nashr muvaffaqiyatli qo'shildi");
 		},
 		onError: (error: any) => {

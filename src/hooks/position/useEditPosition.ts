@@ -18,6 +18,7 @@ export function useUpdatePosition() {
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["positions"] });
+			queryClient.invalidateQueries({ queryKey: ["positions-stats"] });
 			toast.success("Lavozim muvaffaqiyatli yangilandi");
 		},
 		onError: (error: any) => {

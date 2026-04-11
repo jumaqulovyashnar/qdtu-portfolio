@@ -8,8 +8,9 @@ export function useCreateNazorat() {
 
 	return useMutation({
 		mutationFn: (input: NazoratCreateDTO) => NazoratService.create(input),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["nazorat"] });
+		onSuccess: async (_data, variables) => {
+			await queryClient.invalidateQueries({ queryKey: ["nazorat", variables.userId] });
+			await queryClient.refetchQueries({ queryKey: ["nazorat", variables.userId], type: "active" });
 			toast.success("Nazorat muvaffaqiyatli qo'shildi");
 		},
 		onError: (error: any) => {

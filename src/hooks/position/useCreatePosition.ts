@@ -10,6 +10,7 @@ export function useCreatePosition() {
 
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["positions"] });
+			queryClient.invalidateQueries({ queryKey: ["positions-stats"] });
 			toast.success("Lavozim muvaffaqiyatli qo'shildi");
 		},
 

@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { ConfirmPopover } from "@/components/confirm-popover/confirm-popover";
 import { Modal } from "@/components/modal/modal";
 import { TableToolbar } from "@/components/table-toolbar/table-toolbar";
-import type { Position } from "@/features/position/position.type";
+import type { Position, PositionStatistic } from "@/features/position/position.type";
 import { useCreatePosition } from "@/hooks/position/useCreatePosition";
 import { useDeletePosition } from "@/hooks/position/useDeletePosition";
 import { useUpdatePosition } from "@/hooks/position/useEditPosition";
@@ -25,20 +25,24 @@ export default function Positions() {
 	const { close, open } = useModalActions();
 	const editData = useModalEditData() as Position | null;
 	const isEdit = editData !== null;
-	const { data: positionResponse, refetch } = usePosition();
+	const { data: positionResponse, refetch } = usePosition(search);
 	const { data: statsResponse } = useStatsPosition();
 	const { mutate: createPosition, isPending: isCreating } = useCreatePosition();
 	const { mutate: updatePosition, isPending: isUpdating } = useUpdatePosition();
 	const { mutate: deletePosition } = useDeletePosition();
 	const isPending = isCreating || isUpdating;
 	const positions: Position[] = positionResponse?.data ?? [];
+	const visiblePositions = useMemo(() => {
+		const term = search.trim().toLowerCase();
+		if (!term) return positions;
+		return positions.filter((position) => position.name.toLowerCase().includes(term));
+	}, [positions, search]);
 	const stats = statsResponse?.data;
 	const totalEmployees =
-		stats?.data?.reduce((sum: number, item: { totalEmployees: number }) => sum + item.totalEmployees, 0) ?? 0;
-
-	const filtered = useMemo(
-		() => positions.filter((f) => f.name.toLowerCase().includes(search.toLowerCase())),
-		[positions, search],
+		stats?.data?.reduce((sum: number, item: PositionStatistic) => sum + item.totalEmployees, 0) ?? 0;
+	const employeeCountByPosition = useMemo(
+		() => new Map((stats?.data ?? []).map((item) => [item.name.toLowerCase().trim(), item.totalEmployees])),
+		[stats],
 	);
 
 	const {
@@ -96,7 +100,7 @@ export default function Positions() {
 							</div>
 							<div className="flex flex-col gap-0.5">
 								<span className="text-[12px] text-muted-foreground">Jami lavozimlar</span>
-								<span className="text-[20px] font-bold leading-tight">{stats.total}</span>
+								<span className="text-[20px] font-bold leading-tight">{positions.length}</span>
 							</div>
 						</CardContent>
 					</Card>
@@ -116,7 +120,7 @@ export default function Positions() {
 
 			<TableToolbar
 				countLabel="Lavozimlar soni"
-				count={filtered.length}
+				count={visiblePositions.length}
 				searchValue={search}
 				onSearchChange={setSearch}
 				onAdd={() => open()}
@@ -124,13 +128,15 @@ export default function Positions() {
 			/>
 
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-				{filtered.length ? (
-					filtered.map((position) => (
+				{visiblePositions.length ? (
+					visiblePositions.map((position) => (
 						<Card key={position.id} className="py-0">
 							<CardContent className="flex flex-col gap-4 px-5 py-5">
 								<div className="flex flex-col gap-0.5">
 									<span className="text-[15px] font-semibold leading-tight">{position.name}</span>
-									<span className="text-[12px] text-muted-foreground">{position.totalEmployees || 0} ta xodim</span>
+									<span className="text-[12px] text-muted-foreground">
+										{employeeCountByPosition.get(position.name.toLowerCase().trim()) ?? 0} ta xodim
+									</span>
 								</div>
 								<div className="flex justify-center items-center gap-2">
 									<button

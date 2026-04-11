@@ -1,4 +1,3 @@
-import { Checkbox } from "antd";
 import {
 	AlignLeft,
 	BookOpen,
@@ -9,7 +8,6 @@ import {
 	Globe2,
 	Hash,
 	Pencil,
-	Plus,
 	Star,
 	UserCheck,
 } from "lucide-react";
@@ -60,9 +58,9 @@ export function NashrModal({ userId }: { userId: number }) {
 							name: editData.name,
 							description: editData.description,
 							year: String(editData.year),
-							institution: editData.organization,
+							institution: editData.institution ?? editData.organization ?? "",
 							type: editData.type,
-							author: editData.authorship,
+							author: editData.author ?? editData.authorship,
 							degree: editData.degree,
 							volume: editData.volume,
 							popular: editData.popular,

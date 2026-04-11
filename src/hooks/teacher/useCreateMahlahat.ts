@@ -8,8 +8,9 @@ export function useCreateMaslahat() {
 
 	return useMutation({
 		mutationFn: (input: ConsultationRequest) => MaslahatService.create(input),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["maslahat"] });
+		onSuccess: async (_data, variables) => {
+			await queryClient.invalidateQueries({ queryKey: ["maslahat", variables.userId] });
+			await queryClient.refetchQueries({ queryKey: ["maslahat", variables.userId], type: "active" });
 			toast.success("Maslahat muvaffaqiyatli qo'shildi");
 		},
 		onError: (error: any) => {

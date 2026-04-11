@@ -15,8 +15,9 @@ export function useEditNashr() {
 			const { id, ...data } = input;
 			return publicationService.edit(id, data);
 		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["nashr"] });
+		onSuccess: async (_data, variables) => {
+			await queryClient.invalidateQueries({ queryKey: ["nashr", variables.userId] });
+			await queryClient.refetchQueries({ queryKey: ["nashr", variables.userId], type: "active" });
 			toast.success("Nashr muvaffaqiyatli tahrirlandi");
 		},
 		onError: (error: any) => {

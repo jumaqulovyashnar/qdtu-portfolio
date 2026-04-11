@@ -1,29 +1,52 @@
+import {
+	AlignLeft,
+	BarChart,
+	Building2,
+	Calendar,
+	CheckCircle2,
+	FileUp,
+	Globe2,
+	// Plus,
+	Pencil,
+	Search,
+	User,
+} from "lucide-react";
+import { useEffect } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { FileInput } from "@/components/file-input/file-input";
 import { Modal } from "@/components/modal/modal";
-import { useModalActions, useModalEditData, useModalIsOpen } from "@/store/modalStore";
+import { fileService } from "@/features/file/file.service";
 import { useCreateNazorat } from "@/hooks/teacher/useCreateNazorat";
 import { useEditNazorat } from "@/hooks/teacher/useEditNazorat";
-import { fileService } from "@/features/file/file.service";
+import { useModalActions, useModalEditData, useModalIsOpen } from "@/store/modalStore";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/select";
 import { Textarea } from "@/ui/textarea";
-import { useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
-import {
-	Search,
-	AlignLeft,
-	User,
-	Building2,
-	Calendar,
-	BarChart,
-	Globe2,
-	CheckCircle2,
-	FileUp,
-	// Plus,
-	Pencil,
-} from "lucide-react";
+
+type NazoratFormData = {
+	name: string;
+	description: string;
+	researcherName: string;
+	univerName: string;
+	year: string;
+	level?: "YUQORI" | "O'RTA" | "BOSHLANG'ICH";
+	memberEnum?: "MILLIY" | "XALQARO";
+	finished?: "true" | "false";
+	pdf: File | null;
+};
+
+function uploadResponseToUrl(raw: unknown): string {
+	if (typeof raw === "string" && raw.trim() !== "") return raw;
+	if (raw && typeof raw === "object") {
+		const obj = raw as Record<string, unknown>;
+		if (typeof obj.url === "string" && obj.url.trim() !== "") return obj.url;
+		if (typeof obj.data === "string" && obj.data.trim() !== "") return obj.data;
+	}
+	return "";
+}
 
 export function PublicationModal({ userId }: { userId: number }) {
 	const isOpen = useModalIsOpen();
@@ -36,7 +59,7 @@ export function PublicationModal({ userId }: { userId: number }) {
 	const isEdit = visible && !!editData?.id;
 	const isPending = isCreating || isEditing;
 
-	const { register, handleSubmit, control, reset } = useForm();
+	const { register, handleSubmit, control, reset } = useForm<NazoratFormData>();
 
 	useEffect(() => {
 		if (visible) {
@@ -59,32 +82,52 @@ export function PublicationModal({ userId }: { userId: number }) {
 							researcherName: "",
 							univerName: "",
 							year: "",
-							level: "",
-							memberEnum: "",
-							finished: "",
+							level: undefined,
+							memberEnum: undefined,
+							finished: undefined,
 							pdf: null,
 						},
 			);
 		}
 	}, [visible, isEdit, editData, reset]);
 
-	const onSubmit = async (data: any) => {
-		let fileUrl = editData?.fileUrl || "";
-		if (data.pdf) {
+	const onSubmit = async (data: NazoratFormData) => {
+		if (!data.level || !data.memberEnum || data.finished === undefined) {
+			toast.error("Daraja, a'zolik va holatni tanlang");
+			return;
+		}
+
+		const yearNum = Number(data.year);
+		if (!Number.isFinite(yearNum)) {
+			toast.error("Yilni to'g'ri kiriting");
+			return;
+		}
+
+		let fileUrl = typeof editData?.fileUrl === "string" ? editData.fileUrl : "";
+		if (data.pdf instanceof File) {
 			const uploaded = await fileService.uploadPdf(data.pdf);
-			fileUrl = uploaded.url;
+			fileUrl = uploadResponseToUrl(uploaded);
 		}
 
 		const payload = {
-			...data,
-			year: Number(data.year),
+			name: data.name,
+			description: data.description,
+			researcherName: data.researcherName,
+			univerName: data.univerName,
+			level: data.level,
+			memberEnum: data.memberEnum,
+			year: yearNum,
 			finished: data.finished === "true",
 			fileUrl,
 			userId,
 		};
 
-		isEdit ? await editNazorat({ id: editData.id, ...payload }) : await createNazorat(payload);
-		close();
+		try {
+			isEdit ? await editNazorat({ id: editData.id, ...payload }) : await createNazorat(payload);
+			close();
+		} catch {
+			/* xato toast hookda */
+		}
 	};
 
 	return (
@@ -147,8 +190,9 @@ export function PublicationModal({ userId }: { userId: number }) {
 						<Controller
 							name="level"
 							control={control}
+							rules={{ required: true }}
 							render={({ field }) => (
-								<Select value={field.value} onValueChange={field.onChange}>
+								<Select value={field.value ? String(field.value) : undefined} onValueChange={field.onChange}>
 									<SelectTrigger className="bg-background">
 										<SelectValue placeholder="Tanlang" />
 									</SelectTrigger>
@@ -168,8 +212,9 @@ export function PublicationModal({ userId }: { userId: number }) {
 						<Controller
 							name="memberEnum"
 							control={control}
+							rules={{ required: true }}
 							render={({ field }) => (
-								<Select value={field.value} onValueChange={field.onChange}>
+								<Select value={field.value ? String(field.value) : undefined} onValueChange={field.onChange}>
 									<SelectTrigger className="bg-background">
 										<SelectValue placeholder="Tanlang" />
 									</SelectTrigger>
@@ -188,8 +233,9 @@ export function PublicationModal({ userId }: { userId: number }) {
 						<Controller
 							name="finished"
 							control={control}
+							rules={{ required: true }}
 							render={({ field }) => (
-								<Select value={field.value} onValueChange={field.onChange}>
+								<Select value={field.value ? String(field.value) : undefined} onValueChange={field.onChange}>
 									<SelectTrigger className="bg-background">
 										<SelectValue placeholder="Tanlang" />
 									</SelectTrigger>

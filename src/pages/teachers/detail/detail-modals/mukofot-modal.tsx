@@ -1,3 +1,7 @@
+import { AlignLeft, Calendar, FileUp, Globe2, Medal, Pencil, Trophy } from "lucide-react";
+import { useEffect } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { FileInput } from "@/components/file-input/file-input";
 import { Modal } from "@/components/modal/modal";
 import { fileService } from "@/features/file/file.service";
@@ -9,9 +13,6 @@ import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/select";
 import { Textarea } from "@/ui/textarea";
-import { useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { Trophy, AlignLeft, Calendar, Globe2, Medal, FileUp, Plus, Pencil } from "lucide-react";
 
 enum MemberType {
 	MILLIY = "MILLIY",
@@ -25,6 +26,25 @@ enum AwardType {
 	DAVLAT_MUKOFOTI = "Davlat_Mukofoti",
 }
 
+type MukofotFormData = {
+	name: string;
+	description: string;
+	year: string;
+	awardEnum?: AwardType;
+	memberEnum?: MemberType;
+	pdf: File | null;
+};
+
+function uploadResponseToUrl(raw: unknown): string {
+	if (typeof raw === "string" && raw.trim() !== "") return raw;
+	if (raw && typeof raw === "object") {
+		const obj = raw as Record<string, unknown>;
+		if (typeof obj.url === "string" && obj.url.trim() !== "") return obj.url;
+		if (typeof obj.data === "string" && obj.data.trim() !== "") return obj.data;
+	}
+	return "";
+}
+
 export function MukofotModal({ userId }: { userId: number }) {
 	const isOpen = useModalIsOpen();
 	const editData = useModalEditData();
@@ -36,7 +56,7 @@ export function MukofotModal({ userId }: { userId: number }) {
 	const isEdit = visible && !!editData?.id;
 	const isPending = isCreating || isEditing;
 
-	const { register, handleSubmit, control, reset } = useForm();
+	const { register, handleSubmit, control, reset } = useForm<MukofotFormData>();
 
 	useEffect(() => {
 		if (visible) {
@@ -50,30 +70,45 @@ export function MukofotModal({ userId }: { userId: number }) {
 							memberEnum: editData.memberEnum,
 							pdf: null,
 						}
-					: { name: "", description: "", year: "", awardEnum: "", memberEnum: "", pdf: null },
+					: { name: "", description: "", year: "", awardEnum: undefined, memberEnum: undefined, pdf: null },
 			);
 		}
 	}, [visible, isEdit, editData, reset]);
 
-	const onSubmit = async (data: any) => {
-		let fileUrl = editData?.fileUrl || "";
-		if (data.pdf) {
+	const onSubmit = async (data: MukofotFormData) => {
+		if (!data.awardEnum || !data.memberEnum) {
+			toast.error("Mukofot turi va darajasini tanlang");
+			return;
+		}
+
+		const yearNum = Number(data.year);
+		if (!Number.isFinite(yearNum)) {
+			toast.error("Yilni to'g'ri kiriting");
+			return;
+		}
+
+		let fileUrl = typeof editData?.fileUrl === "string" ? editData.fileUrl : "";
+		if (data.pdf instanceof File) {
 			const uploaded = await fileService.uploadPdf(data.pdf);
-			fileUrl = uploaded.url;
+			fileUrl = uploadResponseToUrl(uploaded);
 		}
 
 		const payload = {
 			name: data.name,
 			description: data.description,
-			year: Number(data.year),
+			year: yearNum,
 			awardEnum: data.awardEnum,
 			memberEnum: data.memberEnum,
 			fileUrl,
 			userId,
 		};
 
-		isEdit ? await editMukofot({ id: editData.id, ...payload }) : await createMukofot(payload);
-		close();
+		try {
+			isEdit ? await editMukofot({ id: editData.id, ...payload }) : await createMukofot(payload);
+			close();
+		} catch {
+			/* xato toast hookda */
+		}
 	};
 
 	return (
@@ -132,8 +167,9 @@ export function MukofotModal({ userId }: { userId: number }) {
 						<Controller
 							name="memberEnum"
 							control={control}
+							rules={{ required: true }}
 							render={({ field }) => (
-								<Select value={field.value} onValueChange={field.onChange}>
+								<Select value={field.value ? String(field.value) : undefined} onValueChange={field.onChange}>
 									<SelectTrigger className="bg-background">
 										<SelectValue placeholder="Tanlang" />
 									</SelectTrigger>
@@ -153,8 +189,9 @@ export function MukofotModal({ userId }: { userId: number }) {
 						<Controller
 							name="awardEnum"
 							control={control}
+							rules={{ required: true }}
 							render={({ field }) => (
-								<Select value={field.value} onValueChange={field.onChange}>
+								<Select value={field.value ? String(field.value) : undefined} onValueChange={field.onChange}>
 									<SelectTrigger className="bg-background">
 										<SelectValue placeholder="Tanlang" />
 									</SelectTrigger>

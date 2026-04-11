@@ -15,8 +15,9 @@ export function useEditMukofot() {
 			const { id, ...data } = input;
 			return MukofotService.edit(id, data);
 		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["mukofot"] });
+		onSuccess: async (_data, variables) => {
+			await queryClient.invalidateQueries({ queryKey: ["mukofot", variables.userId] });
+			await queryClient.refetchQueries({ queryKey: ["mukofot", variables.userId], type: "active" });
 			toast.success("Mukofot muvaffaqiyatli tahrirlandi");
 		},
 		onError: (error: any) => {

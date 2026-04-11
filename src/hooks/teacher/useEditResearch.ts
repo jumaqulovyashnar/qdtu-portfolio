@@ -32,8 +32,9 @@ export function useEditResearch() {
 				year: input.year,
 			});
 		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["research"] });
+		onSuccess: async (_data, variables) => {
+			await queryClient.invalidateQueries({ queryKey: ["research", variables.userId] });
+			await queryClient.refetchQueries({ queryKey: ["research", variables.userId], type: "active" });
 			toast.success("Tatqiqot muvaffaqiyatli tahrirlandi");
 		},
 		onError: (error: any) => {

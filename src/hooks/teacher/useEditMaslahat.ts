@@ -15,8 +15,9 @@ export function useEditMaslahat() {
 			const { id, ...data } = input;
 			return MaslahatService.edit(id, data);
 		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["maslahat"] });
+		onSuccess: async (_data, variables) => {
+			await queryClient.invalidateQueries({ queryKey: ["maslahat", variables.userId] });
+			await queryClient.refetchQueries({ queryKey: ["maslahat", variables.userId], type: "active" });
 			toast.success("Maslahat muvaffaqiyatli tahrirlandi");
 		},
 		onError: (error: any) => {

@@ -15,8 +15,9 @@ export function useEditNazorat() {
 			const { id, ...data } = input;
 			return NazoratService.edit(id, data);
 		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["nazorat"] });
+		onSuccess: async (_data, variables) => {
+			await queryClient.invalidateQueries({ queryKey: ["nazorat", variables.userId] });
+			await queryClient.refetchQueries({ queryKey: ["nazorat", variables.userId], type: "active" });
 			toast.success("Nazorat muvaffaqiyatli tahrirlandi");
 		},
 		onError: (error: any) => {

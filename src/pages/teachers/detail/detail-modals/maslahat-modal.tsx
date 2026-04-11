@@ -1,27 +1,38 @@
+import { AlignLeft, Calendar, CheckCircle2, ClipboardList, FileUp, Pencil, Plus, User, Users } from "lucide-react";
+import { useEffect } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { FileInput } from "@/components/file-input/file-input";
 import { Modal } from "@/components/modal/modal";
+import { fileService } from "@/features/file/file.service";
 import { useCreateMaslahat } from "@/hooks/teacher/useCreateMahlahat";
 import { useEditMaslahat } from "@/hooks/teacher/useEditMaslahat";
-import { fileService } from "@/features/file/file.service";
 import { useModalActions, useModalEditData, useModalIsOpen } from "@/store/modalStore";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/select";
 import { Textarea } from "@/ui/textarea";
-import { useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { ClipboardList, AlignLeft, Calendar, User, Users, CheckCircle2, FileUp, Plus, Pencil } from "lucide-react";
 
 type MaslahatFormData = {
 	name: string;
 	description: string;
 	year: string;
-	member: boolean | "";
-	finishedEnum: "COMPLETED" | "IN_PROGRESS" | "FINISHED" | "";
+	member?: boolean;
+	finishedEnum?: "COMPLETED" | "IN_PROGRESS" | "FINISHED";
 	leader: string;
 	pdf: File | null;
 };
+
+function uploadResponseToUrl(raw: unknown): string {
+	if (typeof raw === "string" && raw.trim() !== "") return raw;
+	if (raw && typeof raw === "object") {
+		const obj = raw as Record<string, unknown>;
+		if (typeof obj.url === "string" && obj.url.trim() !== "") return obj.url;
+		if (typeof obj.data === "string" && obj.data.trim() !== "") return obj.data;
+	}
+	return "";
+}
 
 export function MaslahatModal({ userId }: { userId: number }) {
 	const isOpen = useModalIsOpen();
@@ -49,31 +60,46 @@ export function MaslahatModal({ userId }: { userId: number }) {
 							leader: editData.leader,
 							pdf: null,
 						}
-					: { name: "", description: "", year: "", member: "", finishedEnum: "", leader: "", pdf: null },
+					: { name: "", description: "", year: "", member: undefined, finishedEnum: undefined, leader: "", pdf: null },
 			);
 		}
 	}, [visible, isEdit, editData, reset]);
 
 	const onSubmit = async (data: MaslahatFormData) => {
-		let fileUrl = editData?.fileUrl || "";
-		if (data.pdf) {
+		if (data.member === undefined || !data.finishedEnum) {
+			toast.error("A'zolik va holatini tanlang");
+			return;
+		}
+
+		const yearNum = Number(data.year);
+		if (!Number.isFinite(yearNum)) {
+			toast.error("Yilni to'g'ri kiriting");
+			return;
+		}
+
+		let fileUrl = typeof editData?.fileUrl === "string" ? editData.fileUrl : "";
+		if (data.pdf instanceof File) {
 			const uploaded = await fileService.uploadPdf(data.pdf);
-			fileUrl = uploaded.url;
+			fileUrl = uploadResponseToUrl(uploaded);
 		}
 
 		const payload = {
 			name: data.name,
 			description: data.description,
-			year: Number(data.year),
-			member: data.member as boolean,
-			finishedEnum: data.finishedEnum as any,
+			year: yearNum,
+			member: data.member,
+			finishedEnum: data.finishedEnum,
 			leader: data.leader,
 			fileUrl,
 			userId,
 		};
 
-		isEdit ? await editMaslahat({ id: editData.id, ...payload }) : await createMaslahat(payload);
-		close();
+		try {
+			isEdit ? await editMaslahat({ id: editData.id, ...payload }) : await createMaslahat(payload);
+			close();
+		} catch {
+			/* xato toast hookda */
+		}
 	};
 
 	return (
@@ -139,9 +165,10 @@ export function MaslahatModal({ userId }: { userId: number }) {
 						<Controller
 							name="member"
 							control={control}
+							rules={{ required: true }}
 							render={({ field }) => (
 								<Select
-									value={field.value === "" ? "" : String(field.value)}
+									value={field.value === undefined ? undefined : String(field.value)}
 									onValueChange={(val) => field.onChange(val === "true")}
 								>
 									<SelectTrigger className="bg-background">
@@ -163,8 +190,9 @@ export function MaslahatModal({ userId }: { userId: number }) {
 						<Controller
 							name="finishedEnum"
 							control={control}
+							rules={{ required: true }}
 							render={({ field }) => (
-								<Select value={field.value} onValueChange={field.onChange}>
+								<Select value={field.value ? String(field.value) : undefined} onValueChange={field.onChange}>
 									<SelectTrigger className="bg-background">
 										<SelectValue placeholder="Tanlang" />
 									</SelectTrigger>

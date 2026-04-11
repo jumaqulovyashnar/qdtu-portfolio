@@ -1,27 +1,38 @@
+import { AlignLeft, BookOpen, Building2, Calendar, CheckCircle2, FileUp, Globe2, Pencil, Plus } from "lucide-react"; // Ikonkalarni import qilamiz
+import { useEffect } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { FileInput } from "@/components/file-input/file-input";
 import { Modal } from "@/components/modal/modal";
+import { fileService } from "@/features/file/file.service";
 import { useCreateResearch } from "@/hooks/teacher/useCreateResearch";
 import { useEditResearch } from "@/hooks/teacher/useEditResearch";
 import { useModalActions, useModalEditData, useModalIsOpen } from "@/store/modalStore";
-import { fileService } from "@/features/file/file.service";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/select";
 import { Textarea } from "@/ui/textarea";
-import { useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { BookOpen, Calendar, Building2, Globe2, CheckCircle2, FileUp, AlignLeft, Plus, Pencil } from "lucide-react"; // Ikonkalarni import qilamiz
 
 type ResearchFormData = {
 	name: string;
 	description: string;
 	year: string;
 	univerName: string;
-	memberEnum: "MILLIY" | "XALQARO" | "";
-	status: "JARAYONDA" | "TUGALLANGAN" | "";
+	memberEnum?: "MILLIY" | "XALQARO";
+	status?: "JARAYONDA" | "TUGALLANGAN";
 	pdf: File | null;
 };
+
+function uploadResponseToUrl(raw: unknown): string {
+	if (typeof raw === "string" && raw.trim() !== "") return raw;
+	if (raw && typeof raw === "object") {
+		const obj = raw as Record<string, unknown>;
+		if (typeof obj.url === "string" && obj.url.trim() !== "") return obj.url;
+		if (typeof obj.data === "string" && obj.data.trim() !== "") return obj.data;
+	}
+	return "";
+}
 
 export function ResearchModal({ userId }: { userId: number }) {
 	const isOpen = useModalIsOpen();
@@ -44,37 +55,60 @@ export function ResearchModal({ userId }: { userId: number }) {
 							name: editData.name,
 							description: editData.description,
 							year: String(editData.year),
-							univerName: editData.univerName,
+							univerName: editData.univerName ?? editData.organization ?? "",
 							memberEnum: editData.memberEnum,
 							status: editData.finished ? "TUGALLANGAN" : "JARAYONDA",
 							pdf: null,
 						}
-					: { name: "", description: "", year: "", univerName: "", memberEnum: "", status: "", pdf: null },
+					: {
+							name: "",
+							description: "",
+							year: "",
+							univerName: "",
+							memberEnum: undefined,
+							status: undefined,
+							pdf: null,
+						},
 			);
 		}
 	}, [visible, isEdit, editData, reset]);
 
 	const onSubmit = async (data: ResearchFormData) => {
-		let fileUrl = editData?.fileUrl || "";
-		if (data.pdf) {
+		if (!data.memberEnum || !data.status) {
+			toast.error("A'zolik darajasi va holatini tanlang");
+			return;
+		}
+
+		const yearNum = Number(data.year);
+		if (!Number.isFinite(yearNum)) {
+			toast.error("Yilni to'g'ri kiriting");
+			return;
+		}
+
+		let fileUrl = typeof editData?.fileUrl === "string" ? editData.fileUrl : "";
+		if (data.pdf instanceof File) {
 			const uploaded = await fileService.uploadPdf(data.pdf);
-			fileUrl = uploaded.url;
+			fileUrl = uploadResponseToUrl(uploaded);
 		}
 
 		const payload = {
 			name: data.name,
 			description: data.description,
-			year: Number(data.year),
+			year: yearNum,
 			fileUrl,
 			userId,
 			member: true,
 			univerName: data.univerName,
 			finished: data.status === "TUGALLANGAN",
-			memberEnum: data.memberEnum as "MILLIY" | "XALQARO",
+			memberEnum: data.memberEnum,
 		};
 
-		isEdit ? await editResearch({ id: editData.id, ...payload }) : await createResearch(payload);
-		close();
+		try {
+			isEdit ? await editResearch({ id: editData.id, ...payload }) : await createResearch(payload);
+			close();
+		} catch {
+			/* xato toast hookda */
+		}
 	};
 
 	return (
@@ -145,8 +179,9 @@ export function ResearchModal({ userId }: { userId: number }) {
 						<Controller
 							name="memberEnum"
 							control={control}
+							rules={{ required: true }}
 							render={({ field }) => (
-								<Select value={field.value} onValueChange={field.onChange}>
+								<Select value={field.value ? String(field.value) : undefined} onValueChange={field.onChange}>
 									<SelectTrigger className="bg-background">
 										<SelectValue placeholder="Tanlang" />
 									</SelectTrigger>
@@ -167,8 +202,9 @@ export function ResearchModal({ userId }: { userId: number }) {
 						<Controller
 							name="status"
 							control={control}
+							rules={{ required: true }}
 							render={({ field }) => (
-								<Select value={field.value} onValueChange={field.onChange}>
+								<Select value={field.value ? String(field.value) : undefined} onValueChange={field.onChange}>
 									<SelectTrigger className="bg-background">
 										<SelectValue placeholder="Tanlang" />
 									</SelectTrigger>
@@ -208,7 +244,7 @@ export function ResearchModal({ userId }: { userId: number }) {
 						disabled={isPending}
 						className="px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
 					>
-						{isPending ? "Saqlanmoqda..." : "Ma'lumotni saqlash"}
+						{isPending ? "Saqlash..." : "Saqlash"}
 					</Button>
 				</div>
 			</form>
