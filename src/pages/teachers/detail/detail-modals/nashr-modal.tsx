@@ -1,5 +1,6 @@
 import { FileInput } from "@/components/file-input/file-input";
 import { Modal } from "@/components/modal/modal";
+import type { PublicationCreateParams } from "@/features/publication/publication.type";
 import { useCreateNashr } from "@/hooks/teacher/useCreateNashr";
 import { useEditNashr } from "@/hooks/teacher/useEditNashr";
 import { fileService } from "@/features/file/file.service";
@@ -12,6 +13,7 @@ import { Textarea } from "@/ui/textarea";
 import { Checkbox } from "@/ui/checkbox"; // Shadcn Checkbox ishlatsangiz bo'ladi
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import {
 	BookOpen,
 	AlignLeft,
@@ -26,6 +28,16 @@ import {
 	Pencil,
 	Star,
 } from "lucide-react";
+
+function uploadResponseToUrl(raw: unknown): string {
+	if (typeof raw === "string" && raw.trim() !== "") return raw;
+	if (raw && typeof raw === "object") {
+		const o = raw as Record<string, unknown>;
+		if (typeof o.data === "string" && o.data.trim() !== "") return o.data;
+		if (typeof o.url === "string") return o.url;
+	}
+	return "";
+}
 
 export function NashrModal({ userId }: { userId: number }) {
 	const isOpen = useModalIsOpen();
@@ -61,9 +73,9 @@ export function NashrModal({ userId }: { userId: number }) {
 							description: "",
 							year: "",
 							institution: "",
-							type: "",
-							author: "",
-							degree: "",
+							type: undefined as unknown as string,
+							author: undefined as unknown as string,
+							degree: undefined as unknown as string,
 							volume: "",
 							popular: false,
 							pdf: null,
@@ -72,22 +84,49 @@ export function NashrModal({ userId }: { userId: number }) {
 		}
 	}, [visible, isEdit, editData, reset]);
 
-	const onSubmit = async (data: any) => {
-		let fileUrl = editData?.fileUrl || "";
-		if (data.pdf) {
-			const uploaded = await fileService.uploadPdf(data.pdf);
-			fileUrl = uploaded.url;
+	const onSubmit = async (data: Record<string, unknown>) => {
+		const type = data.type as string | undefined;
+		const author = data.author as string | undefined;
+		const degree = data.degree as string | undefined;
+		if (!type?.trim() || !author?.trim() || !degree?.trim()) {
+			toast.error("Nashr turi, mualliflik va darajani tanlang");
+			return;
 		}
 
-		const payload = {
-			...data,
-			year: Number(data.year),
-			fileUrl,
+		let fileUrl = typeof editData?.fileUrl === "string" ? editData.fileUrl : "";
+		if (data.pdf instanceof File) {
+			const raw = await fileService.uploadPdf(data.pdf);
+			fileUrl = uploadResponseToUrl(raw);
+		}
+
+		const yearNum = Number(data.year);
+		if (!Number.isFinite(yearNum)) {
+			toast.error("Yilni to'g'ri kiriting");
+			return;
+		}
+
+		const payload: PublicationCreateParams = {
 			userId,
+			name: String(data.name ?? "").trim(),
+			description: String(data.description ?? ""),
+			year: yearNum,
+			fileUrl,
+			type: type as PublicationCreateParams["type"],
+			author: author as PublicationCreateParams["author"],
+			degree: degree as PublicationCreateParams["degree"],
+			volume: String(data.volume ?? ""),
+			institution: String(data.institution ?? ""),
+			popular: Boolean(data.popular),
 		};
 
-		isEdit ? await editNashr({ id: editData.id, ...payload }) : await createNashr(payload);
-		close();
+		try {
+			isEdit
+				? await editNashr({ id: editData.id as number, ...payload })
+				: await createNashr(payload);
+			close();
+		} catch {
+			/* xato toast hookda */
+		}
 	};
 
 	return (
@@ -148,8 +187,12 @@ export function NashrModal({ userId }: { userId: number }) {
 						<Controller
 							name="type"
 							control={control}
+							rules={{ required: true }}
 							render={({ field }) => (
-								<Select value={field.value} onValueChange={field.onChange}>
+								<Select
+									value={field.value ? String(field.value) : undefined}
+									onValueChange={field.onChange}
+								>
 									<SelectTrigger className="bg-background">
 										<SelectValue placeholder="Tanlang" />
 									</SelectTrigger>
@@ -170,8 +213,12 @@ export function NashrModal({ userId }: { userId: number }) {
 						<Controller
 							name="author"
 							control={control}
+							rules={{ required: true }}
 							render={({ field }) => (
-								<Select value={field.value} onValueChange={field.onChange}>
+								<Select
+									value={field.value ? String(field.value) : undefined}
+									onValueChange={field.onChange}
+								>
 									<SelectTrigger className="bg-background">
 										<SelectValue placeholder="Tanlang" />
 									</SelectTrigger>
@@ -191,8 +238,12 @@ export function NashrModal({ userId }: { userId: number }) {
 						<Controller
 							name="degree"
 							control={control}
+							rules={{ required: true }}
 							render={({ field }) => (
-								<Select value={field.value} onValueChange={field.onChange}>
+								<Select
+									value={field.value ? String(field.value) : undefined}
+									onValueChange={field.onChange}
+								>
 									<SelectTrigger className="bg-background">
 										<SelectValue placeholder="Tanlang" />
 									</SelectTrigger>
