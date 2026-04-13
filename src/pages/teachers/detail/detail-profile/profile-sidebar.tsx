@@ -1,4 +1,4 @@
-import { Flame, UserRound } from "lucide-react";
+import {  UserRound } from "lucide-react";
 import { animate } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import type { ITeacherDetail } from "@/features/teacher/teacher.type";
