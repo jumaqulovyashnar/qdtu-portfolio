@@ -1,9 +1,9 @@
+import { Check, ChevronsUpDown } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/ui/popover";
 import { cn } from "@/utils";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { useState } from "react";
 
 export type SearchableSelectOption = {
 	value: string;
@@ -12,7 +12,7 @@ export type SearchableSelectOption = {
 
 type SearchableSelectProps = {
 	options: SearchableSelectOption[];
-	value: string;
+	value: string | number;
 	onChange: (value: string) => void;
 	placeholder?: string;
 	searchPlaceholder?: string;

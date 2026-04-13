@@ -9,6 +9,7 @@ import { FileInput } from "@/components/file-input/file-input";
 import { Modal } from "@/components/modal/modal";
 import { SearchableSelect } from "@/components/searchable-select/searchable-select";
 import { TableToolbar } from "@/components/table-toolbar/table-toolbar";
+import type { Collage } from "@/features/collage/collage.type";
 import type { Department } from "@/features/departments/department.type";
 import { useCollage } from "@/hooks/collage/useCollage";
 import { useCreateDepartment } from "@/hooks/department/useCreateDepartment";
@@ -29,14 +30,14 @@ type DepartmentFormValues = {
 function createColumns(
 	onEdit: (row: Department) => void,
 	onDelete: (row: Department) => void,
-	page: number,
 	onImageClick: (imageUrl: string) => void,
+	collages: Collage[],
 ): ColumnDef<Department>[] {
 	return [
 		{
 			accessorKey: "id",
 			header: "#",
-			cell: ({ row }) => <span className="text-muted-foreground">{page * 10 + row.index + 1}</span>,
+			cell: ({ row }) => <span className="text-muted-foreground">{row.index + 1}</span>,
 		},
 		{
 			accessorKey: "imgUrl",
@@ -63,9 +64,12 @@ function createColumns(
 			cell: ({ row }) => <span className="font-medium">{row.getValue("name")}</span>,
 		},
 		{
-			accessorKey: "departmentName",
+			accessorKey: "collegeId",
 			header: "Fakulteti",
-			cell: ({ row }) => <span className="font-medium">{row.getValue("departmentName")}</span>,
+			cell: ({ row }) => {
+				const college = collages.find((c) => c.id === row.original.collegeId);
+				return <span className="font-medium">{college?.name ?? "—"}</span>;
+			},
 		},
 		{
 			id: "actions",
@@ -98,23 +102,13 @@ function createColumns(
 export default function Departments() {
 	const [previewImage, setPreviewImage] = useState<string | null>(null);
 	const [searchParams, setSearchParams] = useSearchParams();
-	const page = Number(searchParams.get("page") ?? 0);
 	const search = searchParams.get("name") ?? "";
-
-	const setPage = (newPage: number) => {
-		setSearchParams((prev) => {
-			const next = new URLSearchParams(prev);
-			next.set("page", String(newPage));
-			return next;
-		});
-	};
 
 	const setSearch = (value: string) => {
 		setSearchParams((prev) => {
 			const next = new URLSearchParams(prev);
 			if (value) next.set("name", value);
 			else next.delete("name");
-			next.set("page", "0");
 			return next;
 		});
 	};
@@ -124,30 +118,19 @@ export default function Departments() {
 	const { open, close } = useModalActions();
 	const isEdit = editData !== null;
 
-	const { data: departmentResponse, isLoading, refetch } = useDepartment();
+	const { data: departmentResponse, refetch } = useDepartment();
 	const { mutate: createDepartment, isPending: isCreating } = useCreateDepartment();
 	const { mutate: deleteDepartment } = useDeleteDepartment();
 	const { mutate: updateDepartment, isPending: isUpdating } = useUpdateDepartment();
 	const isPending = isCreating || isUpdating;
 
-	// Fakultetlar ro'yxatini API dan olish
 	const { data: collageResponse } = useCollage();
-	const facultyOptions = useMemo(
-		() =>
-			(collageResponse?.data ?? []).map((f) => ({
-				value: String(f.id),
-				label: f.name,
-			})),
-		[collageResponse],
-	);
+	const collages: Collage[] = collageResponse?.data ?? [];
+
+	const facultyOptions = useMemo(() => collages.map((f) => ({ value: String(f.id), label: f.name })), [collages]);
 
 	const departments: Department[] = departmentResponse?.data ?? [];
-	const filteredDepartments = departments.filter(
-		(d) =>
-			d.name.toLowerCase().includes(search.toLowerCase()) || d.imgUrl?.toLowerCase().includes(search.toLowerCase()),
-	);
-	const totalElements = filteredDepartments.length;
-	const totalPage = Math.ceil(totalElements / 10);
+	const filteredDepartments = departments.filter((d) => d.name.toLowerCase().includes(search.toLowerCase()));
 
 	const {
 		register,
@@ -163,7 +146,7 @@ export default function Departments() {
 		if (editData) {
 			reset({
 				name: editData.name,
-				departmentId: editData.id ? String(editData.id) : "",
+				departmentId: editData.collegeId ? String(editData.collegeId) : "",
 				image: null,
 			});
 		} else {
@@ -171,15 +154,16 @@ export default function Departments() {
 		}
 	}, [editData, reset]);
 
+	// ✅ page va setPreviewImage olib tashlandi — DataTable o'zi boshqaradi
 	const columns = useMemo(
 		() =>
 			createColumns(
 				(row) => open(row),
 				(row) => deleteDepartment(row.id, { onSuccess: () => refetch() }),
-				page,
 				setPreviewImage,
+				collages,
 			),
-		[open, deleteDepartment, page, refetch],
+		[open, deleteDepartment, refetch, collages],
 	);
 
 	const handleClose = () => {
@@ -189,10 +173,7 @@ export default function Departments() {
 
 	const onSubmit = (values: DepartmentFormValues) => {
 		if (isEdit && editData) {
-			const data: any = {
-				name: values.name,
-				departmentId: Number(values.departmentId),
-			};
+			const data: any = { name: values.name, departmentId: Number(values.departmentId) };
 			if (values.image) data.image = values.image;
 			updateDepartment(
 				{ id: editData.id, collegeId: Number(values.departmentId), data },
@@ -206,16 +187,11 @@ export default function Departments() {
 			return;
 		}
 
-		// ✅ image va departmentId ni tekshirish
 		if (!values.image) return;
-		if (!values.departmentId) return; // ← bu qo'shildi
+		if (!values.departmentId) return;
 
 		createDepartment(
-			{
-				name: values.name,
-				collegeId: Number(values.departmentId),
-				image: values.image,
-			},
+			{ name: values.name, collegeId: Number(values.departmentId), image: values.image },
 			{
 				onSuccess: () => {
 					handleClose();
@@ -229,26 +205,19 @@ export default function Departments() {
 		<div className="flex flex-col gap-4">
 			<TableToolbar
 				countLabel="Kafedralar soni"
-				count={totalElements}
+				count={filteredDepartments.length}
 				searchValue={search}
 				onSearchChange={setSearch}
 				onAdd={() => open()}
 				addLabel="Kafedra qo'shish"
 			/>
 
-			<DataTable
-				columns={columns}
-				data={filteredDepartments.slice(page * 10, page * 10 + 10)}
-				isLoading={isLoading}
-				page={page}
-				totalPage={totalPage}
-				onPageChange={setPage}
-			/>
+			<DataTable columns={columns} data={filteredDepartments} />
 
 			{previewImage && (
 				<button
 					type="button"
-					className="fixed inset-0 bg-blue flex items-center justify-center z-50 cursor-pointer w-full border-0"
+					className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 cursor-pointer w-full border-0"
 					onClick={() => setPreviewImage(null)}
 				>
 					<div
