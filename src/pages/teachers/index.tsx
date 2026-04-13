@@ -25,7 +25,12 @@ function createColumns(
 		{
 			accessorKey: "id",
 			header: "#",
-			cell: ({ row }) => <span className="text-muted-foreground text-[12px]">{row.getValue("id")}</span>,
+			// ✅ id emas, row.index + 1 — tartib raqami, 01, 02, 03...
+			cell: ({ row }) => (
+				<span className="text-[12px] text-muted-foreground/50 tabular-nums">
+					{String(row.index + 1).padStart(2, "0")}
+				</span>
+			),
 		},
 		{
 			accessorKey: "fullName",
@@ -108,7 +113,7 @@ function createColumns(
 export default function Teachers() {
 	const { open } = useTeacherSheetActions();
 	const navigate = useNavigate();
-	const { data: response, isLoading } = useTeacher();
+	const { data: response } = useTeacher();
 	const { data: departmentData } = useDepartment();
 	const { data: positionData } = usePosition();
 	const { mutate: deleteTeacher, isPending: isDeletePending } = useDeleteTeacher();
@@ -141,14 +146,10 @@ export default function Teachers() {
 
 	const filteredData = useMemo(() => {
 		if (!teachers.length) return [];
-
 		return teachers.filter((teacher) => {
 			const matchesName = teacher.fullName?.toLowerCase().includes(searchName.toLowerCase()) ?? false;
-
 			const matchesDepartment = selectedDepartment === "all" || String(teacher.departmentId) === selectedDepartment;
-
 			const matchesPosition = selectedPosition === "all" || String(teacher.lavozmId) === selectedPosition;
-
 			return matchesName && matchesDepartment && matchesPosition;
 		});
 	}, [teachers, searchName, selectedDepartment, selectedPosition]);
@@ -254,10 +255,10 @@ export default function Teachers() {
 				</div>
 			</div>
 
+			{/* ✅ isLoading olib tashlandi — DataTable uni qabul qilmaydi */}
 			<DataTable
 				columns={columns}
 				data={filteredData}
-				isLoading={isLoading}
 				onRowClick={(row) => {
 					if (isDeletePending) return;
 					navigate(`/teacher/${row.id}`, { state: { teacher: row } });
