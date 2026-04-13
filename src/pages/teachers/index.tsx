@@ -1,6 +1,6 @@
 import { FilePenLine, Search, UserPlus, UserX, X } from "lucide-react";
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { ConfirmPopover } from "@/components/confirm-popover/confirm-popover";
 import type { ColumnDef } from "@/components/data-table/data-table";
 import { DataTable } from "@/components/data-table/data-table";
@@ -20,15 +20,15 @@ function createColumns(
 	onEdit: (row: Teacher) => void,
 	onDelete: (row: Teacher) => void,
 	isDeleting: boolean,
+	page: number,
 ): ColumnDef<Teacher>[] {
 	return [
 		{
 			accessorKey: "id",
 			header: "#",
-			// ✅ id emas, row.index + 1 — tartib raqami, 01, 02, 03...
 			cell: ({ row }) => (
 				<span className="text-[12px] text-muted-foreground/50 tabular-nums">
-					{String(row.index + 1).padStart(2, "0")}
+					{String(page * 10 + row.index + 1).padStart(2, "0")}
 				</span>
 			),
 		},
@@ -113,23 +113,49 @@ function createColumns(
 export default function Teachers() {
 	const { open } = useTeacherSheetActions();
 	const navigate = useNavigate();
-	const { data: response } = useTeacher();
+	const [searchParams, setSearchParams] = useSearchParams();
 	const { data: departmentData } = useDepartment();
 	const { data: positionData } = usePosition();
 	const { mutate: deleteTeacher, isPending: isDeletePending } = useDeleteTeacher();
 
-	const [searchName, setSearchName] = useState("");
-	const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
-	const [selectedPosition, setSelectedPosition] = useState<string>("all");
+	const page = Number(searchParams.get("page") ?? 0);
+	const searchName = searchParams.get("name") ?? "";
+	const selectedDepartment = searchParams.get("dept") ?? "all";
+	const selectedPosition = searchParams.get("pos") ?? "all";
+
+	// ✅ page ni hook'ga uzatamiz — server har sahifada 10 ta qaytaradi
+	const { data: response, isLoading } = useTeacher(page);
+
+	const setPage = (newPage: number) => {
+		setSearchParams((prev) => {
+			prev.set("page", String(newPage));
+			return prev;
+		});
+	};
+
+	const updateFilter = (key: string, value: string) => {
+		setSearchParams((prev) => {
+			if (value && value !== "all") prev.set(key, value);
+			else prev.delete(key);
+			prev.set("page", "0");
+			return prev;
+		});
+	};
+
+	const clearFilters = () => {
+		setSearchParams(new URLSearchParams());
+	};
 
 	const teachers: Teacher[] = response?.data?.body ?? [];
+	const totalElements: number = response?.data?.totalElements ?? 0;
+	const totalPage: number = response?.data?.totalPage ?? 0;
+
+	const hasActiveFilters = searchName !== "" || selectedDepartment !== "all" || selectedPosition !== "all";
 
 	const departments = useMemo(() => {
 		const depts = [{ value: "all", label: "Barcha kafedralar" }];
 		if (departmentData?.data && Array.isArray(departmentData.data)) {
-			departmentData.data.forEach((d: any) => {
-				depts.push({ value: String(d.id), label: d.name });
-			});
+			departmentData.data.forEach((d: any) => depts.push({ value: String(d.id), label: d.name }));
 		}
 		return depts;
 	}, [departmentData]);
@@ -137,13 +163,12 @@ export default function Teachers() {
 	const positions = useMemo(() => {
 		const pos = [{ value: "all", label: "Barcha lavozimlar" }];
 		if (positionData?.data && Array.isArray(positionData.data)) {
-			positionData.data.forEach((p: any) => {
-				pos.push({ value: String(p.id), label: p.name });
-			});
+			positionData.data.forEach((p: any) => pos.push({ value: String(p.id), label: p.name }));
 		}
 		return pos;
 	}, [positionData]);
 
+	// Client-side filter (faqat joriy sahifadagi 10 ta ichida)
 	const filteredData = useMemo(() => {
 		if (!teachers.length) return [];
 		return teachers.filter((teacher) => {
@@ -154,13 +179,9 @@ export default function Teachers() {
 		});
 	}, [teachers, searchName, selectedDepartment, selectedPosition]);
 
-	const clearFilters = () => {
-		setSearchName("");
-		setSelectedDepartment("all");
-		setSelectedPosition("all");
-	};
-
-	const hasActiveFilters = searchName !== "" || selectedDepartment !== "all" || selectedPosition !== "all";
+	// ✅ filter bo'lsa client hisoblaydi, bo'lmasa serverdan
+	const displayCount = hasActiveFilters ? filteredData.length : totalElements;
+	const computedTotalPage = hasActiveFilters ? Math.ceil(filteredData.length / 10) : totalPage;
 
 	const columns = useMemo(
 		() =>
@@ -168,8 +189,9 @@ export default function Teachers() {
 				(row) => open(row),
 				(row) => deleteTeacher(row.id),
 				isDeletePending,
+				page,
 			),
-		[open, deleteTeacher, isDeletePending],
+		[open, deleteTeacher, isDeletePending, page],
 	);
 
 	return (
@@ -178,13 +200,13 @@ export default function Teachers() {
 				<div className="flex items-center gap-1.5">
 					<span className="text-[13px] font-semibold text-foreground">O'qituvchilar soni:</span>
 					<span className="bg-blue-100 text-blue-700 text-[12px] font-bold px-2 py-0.5 rounded-full">
-						{filteredData.length}
+						{displayCount}
 					</span>
 					{hasActiveFilters && (
 						<button
 							type="button"
 							onClick={clearFilters}
-							className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors ml-2"
+							className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors ml-2 cursor-pointer"
 						>
 							<X className="size-3" />
 							Filtrlarni tozalash
@@ -212,7 +234,7 @@ export default function Teachers() {
 							id="search-name"
 							placeholder="Ism yoki familiya..."
 							value={searchName}
-							onChange={(e) => setSearchName(e.target.value)}
+							onChange={(e) => updateFilter("name", e.target.value)}
 							className="pl-9 h-9 text-[13px] truncate"
 						/>
 					</div>
@@ -222,7 +244,7 @@ export default function Teachers() {
 					<Label htmlFor="department-filter" className="text-xs font-medium text-muted-foreground mb-1 block">
 						Kafedra bo'yicha
 					</Label>
-					<Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+					<Select value={selectedDepartment} onValueChange={(v) => updateFilter("dept", v)}>
 						<SelectTrigger id="department-filter" className="h-9 text-[13px] truncate">
 							<SelectValue placeholder="Kafedra tanlang" />
 						</SelectTrigger>
@@ -240,7 +262,7 @@ export default function Teachers() {
 					<Label htmlFor="position-filter" className="text-xs font-medium text-muted-foreground mb-1 block">
 						Lavozim bo'yicha
 					</Label>
-					<Select value={selectedPosition} onValueChange={setSelectedPosition}>
+					<Select value={selectedPosition} onValueChange={(v) => updateFilter("pos", v)}>
 						<SelectTrigger id="position-filter" className="h-9 text-[13px] truncate">
 							<SelectValue placeholder="Lavozim tanlang" />
 						</SelectTrigger>
@@ -255,10 +277,13 @@ export default function Teachers() {
 				</div>
 			</div>
 
-			{/* ✅ isLoading olib tashlandi — DataTable uni qabul qilmaydi */}
 			<DataTable
 				columns={columns}
 				data={filteredData}
+				page={page}
+				totalPage={computedTotalPage}
+				onPageChange={setPage}
+				isLoading={isLoading}
 				onRowClick={(row) => {
 					if (isDeletePending) return;
 					navigate(`/teacher/${row.id}`, { state: { teacher: row } });

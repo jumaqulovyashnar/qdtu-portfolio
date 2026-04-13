@@ -19,26 +19,54 @@ type DataTableProps<T> = {
 	columns: ColumnDef<T>[];
 	data: T[];
 	onRowClick?: (row: T) => void;
+	page?: number;
+	totalPage?: number;
+	onPageChange?: (page: number) => void;
+	isLoading?: boolean;
 };
 
-export function DataTable<T>({ columns, data, onRowClick }: DataTableProps<T>) {
-	const [pageIndex, setPageIndex] = useState(0);
+export function DataTable<T>({
+	columns,
+	data,
+	onRowClick,
+	page,
+	totalPage,
+	onPageChange,
+	isLoading,
+}: DataTableProps<T>) {
+	const isExternal = page !== undefined && onPageChange !== undefined;
+	const [internalPage, setInternalPage] = useState(0);
+
+	const pageIndex = isExternal ? page! : internalPage;
+	const setPageIndex = isExternal ? onPageChange! : setInternalPage;
 
 	const table = useReactTable({
 		data,
 		columns,
 		getCoreRowModel: getCoreRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
-		state: { pagination: { pageIndex, pageSize: PAGE_SIZE } },
-		onPaginationChange: (updater) => {
-			const next = typeof updater === "function" ? updater({ pageIndex, pageSize: PAGE_SIZE }) : updater;
-			setPageIndex(next.pageIndex);
+		...(isExternal
+			? {
+					manualPagination: true,
+					pageCount: totalPage ?? -1,
+				}
+			: {
+					getPaginationRowModel: getPaginationRowModel(),
+					manualPagination: false,
+					onPaginationChange: (updater) => {
+						const next = typeof updater === "function" ? updater({ pageIndex, pageSize: PAGE_SIZE }) : updater;
+						setInternalPage(next.pageIndex);
+					},
+				}),
+		state: {
+			pagination: { pageIndex, pageSize: PAGE_SIZE },
 		},
-		manualPagination: false,
 	});
 
-	const totalPages = table.getPageCount();
-	const showPagination = data.length > PAGE_SIZE;
+	const totalPages = isExternal ? (totalPage ?? 1) : table.getPageCount();
+	const showPagination = isExternal ? totalPages > 1 : data.length > PAGE_SIZE;
+
+	const canPrev = pageIndex > 0;
+	const canNext = pageIndex < totalPages - 1;
 
 	return (
 		<div className="flex flex-col gap-3">
@@ -56,7 +84,13 @@ export function DataTable<T>({ columns, data, onRowClick }: DataTableProps<T>) {
 						))}
 					</TableHeader>
 					<TableBody>
-						{table.getRowModel().rows.length ? (
+						{isLoading ? (
+							<TableRow>
+								<TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground text-[13px]">
+									Yuklanmoqda...
+								</TableCell>
+							</TableRow>
+						) : table.getRowModel().rows.length ? (
 							table.getRowModel().rows.map((row) => (
 								<TableRow
 									key={row.id}
@@ -83,7 +117,7 @@ export function DataTable<T>({ columns, data, onRowClick }: DataTableProps<T>) {
 			{showPagination && (
 				<div className="flex items-center justify-between px-1">
 					<span className="text-[13px] text-muted-foreground">
-						Jami {data.length} ta | {pageIndex + 1} / {totalPages} sahifa
+						{pageIndex + 1} / {totalPages} sahifa
 					</span>
 
 					<div className="flex items-center gap-1">
@@ -92,7 +126,7 @@ export function DataTable<T>({ columns, data, onRowClick }: DataTableProps<T>) {
 							size="icon"
 							className="h-8 w-8"
 							onClick={() => setPageIndex(0)}
-							disabled={!table.getCanPreviousPage()}
+							disabled={!canPrev}
 						>
 							<ChevronsLeft className="size-4" />
 						</Button>
@@ -100,8 +134,8 @@ export function DataTable<T>({ columns, data, onRowClick }: DataTableProps<T>) {
 							variant="outline"
 							size="icon"
 							className="h-8 w-8"
-							onClick={() => setPageIndex((p) => p - 1)}
-							disabled={!table.getCanPreviousPage()}
+							onClick={() => setPageIndex(pageIndex - 1)}
+							disabled={!canPrev}
 						>
 							<ChevronLeft className="size-4" />
 						</Button>
@@ -122,8 +156,8 @@ export function DataTable<T>({ columns, data, onRowClick }: DataTableProps<T>) {
 							variant="outline"
 							size="icon"
 							className="h-8 w-8"
-							onClick={() => setPageIndex((p) => p + 1)}
-							disabled={!table.getCanNextPage()}
+							onClick={() => setPageIndex(pageIndex + 1)}
+							disabled={!canNext}
 						>
 							<ChevronRight className="size-4" />
 						</Button>
@@ -132,7 +166,7 @@ export function DataTable<T>({ columns, data, onRowClick }: DataTableProps<T>) {
 							size="icon"
 							className="h-8 w-8"
 							onClick={() => setPageIndex(totalPages - 1)}
-							disabled={!table.getCanNextPage()}
+							disabled={!canNext}
 						>
 							<ChevronsRight className="size-4" />
 						</Button>

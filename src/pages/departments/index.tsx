@@ -154,7 +154,6 @@ export default function Departments() {
 		}
 	}, [editData, reset]);
 
-	// ✅ page va setPreviewImage olib tashlandi — DataTable o'zi boshqaradi
 	const columns = useMemo(
 		() =>
 			createColumns(
