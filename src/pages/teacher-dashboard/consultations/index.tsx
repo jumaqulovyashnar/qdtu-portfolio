@@ -10,6 +10,8 @@ export default function TeacherConsultations() {
 	const { open } = useModalActions();
 	const { data: teacher, isLoading: userLoading } = useUser();
 	const { data, isLoading: maslahatLoading } = useMaslahat(teacher?.id);
+	const maslahat = data?.data;
+	const maslahatlar = maslahat?.body ? (Array.isArray(maslahat.body) ? maslahat.body : [maslahat.body]) : [];
 
 	const isLoading = userLoading || maslahatLoading;
 
@@ -43,8 +45,15 @@ export default function TeacherConsultations() {
 			{/* Asosiy Jadval Konteyneri */}
 			<div className="rounded-xl border bg-card text-card-foreground shadow-sm transition-all overflow-x-auto">
 				<div className="p-4 sm:p-6">
-					{data?.data.body && data.data.body.length > 0 ? (
-						<MaslahatTab isLoading={maslahatLoading} page={data.data.page} userId={teacher?.id} data={data.data.body} />
+					{maslahatlar.length > 0 ? (
+						<MaslahatTab
+							data={maslahatlar}
+							userId={teacher?.id ?? 0}
+							page={maslahat?.page ?? 0}
+							totalPage={maslahat?.totalPage ?? 0}
+							onPageChange={() => {}}
+							isLoading={maslahatLoading}
+						/>
 					) : (
 						<div className="py-20 text-center flex flex-col items-center opacity-50">
 							<div className="size-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
@@ -57,7 +66,7 @@ export default function TeacherConsultations() {
 				</div>
 			</div>
 
-			<MaslahatModal userId={teacher?.id} />
+			<MaslahatModal userId={teacher?.id ?? 0} />
 		</div>
 	);
 }

@@ -186,6 +186,7 @@ export default function Positions() {
 					</div>
 				</form>
 			</Modal>
+			
 		</div>
 	);
 }
