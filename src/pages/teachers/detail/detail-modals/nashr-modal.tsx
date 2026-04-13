@@ -11,7 +11,7 @@ import {
 	Star,
 	UserCheck,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { FileInput } from "@/components/file-input/file-input";
@@ -47,6 +47,7 @@ export function NashrModal({ userId }: { userId: number }) {
 	const visible = isOpen && editData?._type === "nashr";
 	const isEdit = visible && !!editData?.id;
 	const isPending = isCreating || isEditing;
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const { register, handleSubmit, control, reset } = useForm();
 
@@ -91,37 +92,40 @@ export function NashrModal({ userId }: { userId: number }) {
 			return;
 		}
 
-		let fileUrl = typeof editData?.fileUrl === "string" ? editData.fileUrl : "";
-		if (data.pdf instanceof File) {
-			const raw = await fileService.uploadPdf(data.pdf);
-			fileUrl = uploadResponseToUrl(raw);
-		}
-
 		const yearNum = Number(data.year);
 		if (!Number.isFinite(yearNum)) {
 			toast.error("Yilni to'g'ri kiriting");
 			return;
 		}
 
-		const payload: PublicationCreateParams = {
-			userId,
-			name: String(data.name ?? "").trim(),
-			description: String(data.description ?? ""),
-			year: yearNum,
-			fileUrl,
-			type: type as PublicationCreateParams["type"],
-			author: author as PublicationCreateParams["author"],
-			degree: degree as PublicationCreateParams["degree"],
-			volume: String(data.volume ?? ""),
-			institution: String(data.institution ?? ""),
-			popular: Boolean(data.popular),
-		};
-
 		try {
+			setIsSubmitting(true);
+			let fileUrl = typeof editData?.fileUrl === "string" ? editData.fileUrl : "";
+			if (data.pdf instanceof File) {
+				const raw = await fileService.uploadPdf(data.pdf);
+				fileUrl = uploadResponseToUrl(raw);
+			}
+
+			const payload: PublicationCreateParams = {
+				userId,
+				name: String(data.name ?? "").trim(),
+				description: String(data.description ?? ""),
+				year: yearNum,
+				fileUrl,
+				type: type as PublicationCreateParams["type"],
+				author: author as PublicationCreateParams["author"],
+				degree: degree as PublicationCreateParams["degree"],
+				volume: String(data.volume ?? ""),
+				institution: String(data.institution ?? ""),
+				popular: Boolean(data.popular),
+			};
+
 			isEdit ? await editNashr({ id: editData.id as number, ...payload }) : await createNashr(payload);
 			close();
 		} catch {
 			/* xato toast hookda */
+		} finally {
+			setIsSubmitting(false);
 		}
 	};
 
@@ -286,8 +290,8 @@ export function NashrModal({ userId }: { userId: number }) {
 					<Button type="button" variant="ghost" onClick={close}>
 						Bekor qilish
 					</Button>
-					<Button type="submit" disabled={isPending}>
-						{isPending ? "Saqlanmoqda..." : "Saqlash"}
+					<Button type="submit" disabled={isPending || isSubmitting}>
+						{isPending || isSubmitting ? "Saqlanmoqda..." : "Saqlash"}
 					</Button>
 				</div>
 			</form>

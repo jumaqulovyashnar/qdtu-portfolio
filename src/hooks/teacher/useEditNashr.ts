@@ -17,7 +17,11 @@ export function useEditNashr() {
 		},
 		onSuccess: async (_data, variables) => {
 			await queryClient.invalidateQueries({ queryKey: ["nashr", variables.userId] });
+			await queryClient.invalidateQueries({ queryKey: ["teacher-stats", variables.userId] });
+			await queryClient.invalidateQueries({ queryKey: ["teacher-completion", variables.userId] });
 			await queryClient.refetchQueries({ queryKey: ["nashr", variables.userId], type: "active" });
+			await queryClient.refetchQueries({ queryKey: ["teacher-stats", variables.userId], type: "active" });
+			await queryClient.refetchQueries({ queryKey: ["teacher-completion", variables.userId], type: "active" });
 			toast.success("Nashr muvaffaqiyatli tahrirlandi");
 		},
 		onError: (error: any) => {

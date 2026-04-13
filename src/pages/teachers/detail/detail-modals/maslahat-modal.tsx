@@ -1,5 +1,5 @@
 import { AlignLeft, Calendar, CheckCircle2, ClipboardList, FileUp, Pencil, Plus, User, Users } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { FileInput } from "@/components/file-input/file-input";
@@ -44,6 +44,7 @@ export function MaslahatModal({ userId }: { userId: number }) {
 	const visible = isOpen && editData?._type === "maslahat";
 	const isEdit = visible && !!editData?.id;
 	const isPending = isCreating || isEditing;
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const { register, handleSubmit, control, reset } = useForm<MaslahatFormData>();
 
@@ -77,28 +78,31 @@ export function MaslahatModal({ userId }: { userId: number }) {
 			return;
 		}
 
-		let fileUrl = typeof editData?.fileUrl === "string" ? editData.fileUrl : "";
-		if (data.pdf instanceof File) {
-			const uploaded = await fileService.uploadPdf(data.pdf);
-			fileUrl = uploadResponseToUrl(uploaded);
-		}
-
-		const payload = {
-			name: data.name,
-			description: data.description,
-			year: yearNum,
-			member: data.member,
-			finishedEnum: data.finishedEnum,
-			leader: data.leader,
-			fileUrl,
-			userId,
-		};
-
 		try {
+			setIsSubmitting(true);
+			let fileUrl = typeof editData?.fileUrl === "string" ? editData.fileUrl : "";
+			if (data.pdf instanceof File) {
+				const uploaded = await fileService.uploadPdf(data.pdf);
+				fileUrl = uploadResponseToUrl(uploaded);
+			}
+
+			const payload = {
+				name: data.name,
+				description: data.description,
+				year: yearNum,
+				member: data.member,
+				finishedEnum: data.finishedEnum,
+				leader: data.leader,
+				fileUrl,
+				userId,
+			};
+
 			isEdit ? await editMaslahat({ id: editData.id, ...payload }) : await createMaslahat(payload);
 			close();
 		} catch {
 			/* xato toast hookda */
+		} finally {
+			setIsSubmitting(false);
 		}
 	};
 
@@ -225,8 +229,8 @@ export function MaslahatModal({ userId }: { userId: number }) {
 					<Button type="button" variant="ghost" onClick={close}>
 						Bekor qilish
 					</Button>
-					<Button type="submit" disabled={isPending}>
-						{isPending ? "Saqlanmoqda..." : "Saqlash"}
+					<Button type="submit" disabled={isPending || isSubmitting}>
+						{isPending || isSubmitting ? "Saqlanmoqda..." : "Saqlash"}
 					</Button>
 				</div>
 			</form>

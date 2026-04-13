@@ -21,7 +21,11 @@ export function useCreateResearch() {
 		mutationFn: (input: CreateResearchInput) => ResearchService.create(input),
 		onSuccess: async (_data, variables) => {
 			await queryClient.invalidateQueries({ queryKey: ["research", variables.userId] });
+			await queryClient.invalidateQueries({ queryKey: ["teacher-stats", variables.userId] });
+			await queryClient.invalidateQueries({ queryKey: ["teacher-completion", variables.userId] });
 			await queryClient.refetchQueries({ queryKey: ["research", variables.userId], type: "active" });
+			await queryClient.refetchQueries({ queryKey: ["teacher-stats", variables.userId], type: "active" });
+			await queryClient.refetchQueries({ queryKey: ["teacher-completion", variables.userId], type: "active" });
 			toast.success("Tatqiqot muvaffaqiyatli qo'shildi");
 		},
 		onError: (error: any) => {

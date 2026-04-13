@@ -17,7 +17,11 @@ export function useEditMukofot() {
 		},
 		onSuccess: async (_data, variables) => {
 			await queryClient.invalidateQueries({ queryKey: ["mukofot", variables.userId] });
+			await queryClient.invalidateQueries({ queryKey: ["teacher-stats", variables.userId] });
+			await queryClient.invalidateQueries({ queryKey: ["teacher-completion", variables.userId] });
 			await queryClient.refetchQueries({ queryKey: ["mukofot", variables.userId], type: "active" });
+			await queryClient.refetchQueries({ queryKey: ["teacher-stats", variables.userId], type: "active" });
+			await queryClient.refetchQueries({ queryKey: ["teacher-completion", variables.userId], type: "active" });
 			toast.success("Mukofot muvaffaqiyatli tahrirlandi");
 		},
 		onError: (error: any) => {

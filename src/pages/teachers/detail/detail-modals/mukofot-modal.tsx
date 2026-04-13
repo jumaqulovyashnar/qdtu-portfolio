@@ -1,5 +1,5 @@
 import { AlignLeft, Calendar, FileUp, Globe2, Medal, Pencil, Trophy } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { FileInput } from "@/components/file-input/file-input";
@@ -55,6 +55,7 @@ export function MukofotModal({ userId }: { userId: number }) {
 	const visible = isOpen && editData?._type === "mukofot";
 	const isEdit = visible && !!editData?.id;
 	const isPending = isCreating || isEditing;
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const { register, handleSubmit, control, reset } = useForm<MukofotFormData>();
 
@@ -87,27 +88,30 @@ export function MukofotModal({ userId }: { userId: number }) {
 			return;
 		}
 
-		let fileUrl = typeof editData?.fileUrl === "string" ? editData.fileUrl : "";
-		if (data.pdf instanceof File) {
-			const uploaded = await fileService.uploadPdf(data.pdf);
-			fileUrl = uploadResponseToUrl(uploaded);
-		}
-
-		const payload = {
-			name: data.name,
-			description: data.description,
-			year: yearNum,
-			awardEnum: data.awardEnum,
-			memberEnum: data.memberEnum,
-			fileUrl,
-			userId,
-		};
-
 		try {
+			setIsSubmitting(true);
+			let fileUrl = typeof editData?.fileUrl === "string" ? editData.fileUrl : "";
+			if (data.pdf instanceof File) {
+				const uploaded = await fileService.uploadPdf(data.pdf);
+				fileUrl = uploadResponseToUrl(uploaded);
+			}
+
+			const payload = {
+				name: data.name,
+				description: data.description,
+				year: yearNum,
+				awardEnum: data.awardEnum,
+				memberEnum: data.memberEnum,
+				fileUrl,
+				userId,
+			};
+
 			isEdit ? await editMukofot({ id: editData.id, ...payload }) : await createMukofot(payload);
 			close();
 		} catch {
 			/* xato toast hookda */
+		} finally {
+			setIsSubmitting(false);
 		}
 	};
 
@@ -227,8 +231,8 @@ export function MukofotModal({ userId }: { userId: number }) {
 					<Button type="button" variant="ghost" onClick={close}>
 						Bekor qilish
 					</Button>
-					<Button type="submit" disabled={isPending}>
-						{isPending ? "Saqlanmoqda..." : "Saqlash"}
+					<Button type="submit" disabled={isPending || isSubmitting}>
+						{isPending || isSubmitting ? "Saqlanmoqda..." : "Saqlash"}
 					</Button>
 				</div>
 			</form>

@@ -1,5 +1,5 @@
 import { AlignLeft, BookOpen, Building2, Calendar, CheckCircle2, FileUp, Globe2, Pencil, Plus } from "lucide-react"; // Ikonkalarni import qilamiz
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { FileInput } from "@/components/file-input/file-input";
@@ -44,6 +44,7 @@ export function ResearchModal({ userId }: { userId: number }) {
 	const visible = isOpen && (editData?._type === "research" || editData === "research");
 	const isEdit = visible && !!editData?.id;
 	const isPending = isCreating || isEditing;
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const { register, handleSubmit, control, reset } = useForm<ResearchFormData>();
 
@@ -85,29 +86,32 @@ export function ResearchModal({ userId }: { userId: number }) {
 			return;
 		}
 
-		let fileUrl = typeof editData?.fileUrl === "string" ? editData.fileUrl : "";
-		if (data.pdf instanceof File) {
-			const uploaded = await fileService.uploadPdf(data.pdf);
-			fileUrl = uploadResponseToUrl(uploaded);
-		}
-
-		const payload = {
-			name: data.name,
-			description: data.description,
-			year: yearNum,
-			fileUrl,
-			userId,
-			member: true,
-			univerName: data.univerName,
-			finished: data.status === "TUGALLANGAN",
-			memberEnum: data.memberEnum,
-		};
-
 		try {
+			setIsSubmitting(true);
+			let fileUrl = typeof editData?.fileUrl === "string" ? editData.fileUrl : "";
+			if (data.pdf instanceof File) {
+				const uploaded = await fileService.uploadPdf(data.pdf);
+				fileUrl = uploadResponseToUrl(uploaded);
+			}
+
+			const payload = {
+				name: data.name,
+				description: data.description,
+				year: yearNum,
+				fileUrl,
+				userId,
+				member: true,
+				univerName: data.univerName,
+				finished: data.status === "TUGALLANGAN",
+				memberEnum: data.memberEnum,
+			};
+
 			isEdit ? await editResearch({ id: editData.id, ...payload }) : await createResearch(payload);
 			close();
 		} catch {
 			/* xato toast hookda */
+		} finally {
+			setIsSubmitting(false);
 		}
 	};
 
@@ -241,10 +245,10 @@ export function ResearchModal({ userId }: { userId: number }) {
 					</Button>
 					<Button
 						type="submit"
-						disabled={isPending}
+						disabled={isPending || isSubmitting}
 						className="px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
 					>
-						{isPending ? "Saqlash..." : "Saqlash"}
+						{isPending || isSubmitting ? "Saqlanmoqda..." : "Saqlash"}
 					</Button>
 				</div>
 			</form>
