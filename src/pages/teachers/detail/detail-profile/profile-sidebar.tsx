@@ -11,11 +11,8 @@ type ProfileSidebarProps = {
 		imageUrl: string | null;
 	};
 	newImage?: string | File | null;
-	/** Backend profile-completion foizi (0–100) */
 	complation?: number | null;
-	/** Maydonlar to'ldirilganligiga qarab taxminiy foiz (API sekin bo'lsa) */
 	detail?: ITeacherDetail | null;
-	/** Foizni refreshdan keyin saqlash / tiklash uchun foydalanuvchi id */
 	cacheUserId?: number;
 };
 
@@ -24,7 +21,6 @@ function clampPercent(n: number): number {
 	return Math.min(100, Math.max(0, Math.round(n)));
 }
 
-/** API ba'zan raqam emas yoki { data: n } qaytarishi mumkin */
 function parseApiCompletion(raw: unknown): number | undefined {
 	if (raw == null) return undefined;
 	if (typeof raw === "number" && Number.isFinite(raw)) return raw;
@@ -101,7 +97,6 @@ export function ProfileSidebar({ profile, newImage, complation, detail, cacheUse
 			try {
 				sessionStorage.setItem(completionCacheKey(cacheUserId), JSON.stringify(target));
 			} catch {
-				/* ignore */
 			}
 		}
 	}, [target, cacheUserId]);
